@@ -1,4 +1,5 @@
 using Jellyfin.Data.Enums;
+using Jellyfin.Database.Implementations.Enums;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Tasks;
@@ -34,7 +35,7 @@ public class ClipGenerationTask : IScheduledTask
         {
             new TaskTriggerInfo
             {
-                Type = TaskTriggerInfo.TriggerDaily,
+                Type = TaskTriggerInfoType.DailyTrigger,
                 TimeOfDayTicks = TimeSpan.FromHours(3).Ticks
             }
         };
