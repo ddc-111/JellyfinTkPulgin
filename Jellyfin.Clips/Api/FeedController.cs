@@ -3,6 +3,7 @@ using MediaBrowser.Common.Api;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Jellyfin.Clips.Model;
 using Jellyfin.Clips.Services;
 
