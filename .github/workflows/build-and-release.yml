@@ -8,7 +8,7 @@ on:
     branches: [ main ]
 
 env:
-  DOTNET_VERSION: '8.0.x'
+  DOTNET_VERSION: '9.0.x'
   PLUGIN_GUID: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
   PLUGIN_NAME: 'Jellyfin.Clips'
 
@@ -39,8 +39,8 @@ jobs:
         with:
           name: plugin-build
           path: |
-            Jellyfin.Clips/bin/Release/net8.0/Jellyfin.Clips.dll
-            Jellyfin.Clips/bin/Release/net8.0/Jellyfin.Clips.deps.json
+            Jellyfin.Clips/bin/Release/net9.0/Jellyfin.Clips.dll
+            Jellyfin.Clips/bin/Release/net9.0/Jellyfin.Clips.deps.json
           retention-days: 7
 
   release:
@@ -69,8 +69,8 @@ jobs:
         id: package
         run: |
           mkdir -p artifact
-          cp Jellyfin.Clips/bin/Release/net8.0/Jellyfin.Clips.dll artifact/
-          cp Jellyfin.Clips/bin/Release/net8.0/Jellyfin.Clips.deps.json artifact/
+          cp Jellyfin.Clips/bin/Release/net9.0/Jellyfin.Clips.dll artifact/
+          cp Jellyfin.Clips/bin/Release/net9.0/Jellyfin.Clips.deps.json artifact/
 
           VERSION="${GITHUB_REF#refs/tags/v}"
           ZIP_NAME="Jellyfin.Clips_${VERSION}.zip"
@@ -135,7 +135,7 @@ jobs:
           version_entry = {
               'version': '${VERSION_4}',
               'changelog': 'Release ${VERSION}',
-              'targetAbi': '10.9.0.0',
+              'targetAbi': '10.11.0.0',
               'sourceUrl': '${SOURCE_URL}',
               'checksum': '${SHA256}',
               'timestamp': '${TIMESTAMP}'

@@ -10,8 +10,8 @@
     <a href="https://github.com/ddc-111/JellyfinTkPulgin/actions">
       <img src="https://github.com/ddc-111/JellyfinTkPulgin/actions/workflows/build-and-release.yml/badge.svg" alt="Build Status">
     </a>
-    <img src="https://img.shields.io/badge/Jellyfin-10.9.x-blue" alt="Jellyfin Version">
-    <img src="https://img.shields.io/badge/.NET-8.0-purple" alt=".NET Version">
+    <img src="https://img.shields.io/badge/Jellyfin-10.11.x-blue" alt="Jellyfin Version">
+    <img src="https://img.shields.io/badge/.NET-9.0-purple" alt=".NET Version">
     <img src="https://img.shields.io/github/license/ddc-111/JellyfinTkPulgin" alt="License">
   </p>
 </p>
@@ -34,8 +34,8 @@
 
 | 依赖 | 版本 |
 |------|------|
-| Jellyfin Server | 10.9.x |
-| .NET Runtime | 8.0 |
+| Jellyfin Server | 10.11.x |
+| .NET Runtime | 9.0 |
 | FFmpeg | 任意版本（需在系统 PATH 中或手动指定路径） |
 
 ## 安装方式
