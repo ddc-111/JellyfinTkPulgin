@@ -28,6 +28,7 @@
 - **Background Processing** — Detects server idle state and extracts clips automatically without affecting playback
 - **Scheduled Tasks** — Daily scheduled scanning and clip generation
 - **Full Configuration UI** — Visual configuration panel in Jellyfin Dashboard
+- **Multimodal AI Analysis** — Integrates Xiaomi's multimodal LLM to analyze video frames, auto-generate titles, semantic tags, and mood labels for clips
 
 ## Requirements
 
@@ -114,6 +115,23 @@ Configure at **Dashboard** → **Plugins** → **Clips**:
 | Recency Bonus | 0.15 | Boost for newly extracted clips |
 | Diversity | 0.10 | Random perturbation for recommendation diversity |
 | Scene Score | 0.10 | Weight for FFmpeg scene detection score |
+
+### Multimodal AI Configuration
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Enable Multimodal Analysis | Off | Enable AI-powered semantic analysis for clips |
+| API Base URL | `https://api.mimodel.com/v1` | Xiaomi multimodal LLM API endpoint |
+| API Key | (empty) | Your Xiaomi API key |
+| Model Name | `MiMo-VL-7B` | Multimodal model identifier |
+| Sample Frame Count | 3 | Number of frames to extract per clip (1-8) |
+| Request Timeout | 30s | API request timeout |
+
+**Features:**
+- Auto-generates catchy titles for each clip
+- Extracts semantic tags (actions, scenes, objects)
+- Assigns mood labels (funny, tense, touching, etc.)
+- Built-in risk content detection to filter inappropriate results
 
 ## API Endpoints
 
