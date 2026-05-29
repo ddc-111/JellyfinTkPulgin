@@ -40,12 +40,14 @@ public class PluginConfiguration : BasePluginConfiguration
 
 public class RecommendationWeights
 {
-    public double GenrePreference { get; set; } = 0.3;
-    public double CompletionRate { get; set; } = 0.25;
-    public double RecencyBonus { get; set; } = 0.15;
-    public double DiversityBonus { get; set; } = 0.1;
-    public double SimilarUserPreference { get; set; } = 0.1;
-    public double SceneScore { get; set; } = 0.1;
+    public double GenrePreference { get; set; } = 0.25;
+    public double SemanticTagPreference { get; set; } = 0.2;
+    public double MoodTagPreference { get; set; } = 0.15;
+    public double CompletionRate { get; set; } = 0.15;
+    public double RecencyBonus { get; set; } = 0.1;
+    public double DiversityBonus { get; set; } = 0.05;
+    public double SimilarUserPreference { get; set; } = 0.05;
+    public double SceneScore { get; set; } = 0.05;
 }
 
 public class MultimodalConfiguration

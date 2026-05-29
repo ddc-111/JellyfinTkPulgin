@@ -10,6 +10,8 @@ public interface IRecommendationEngine
 {
     Task<IReadOnlyList<ScoredClip>> GetRecommendedClipsAsync(string userId, int count, string? genre = null, CancellationToken ct = default);
     Task UpdateUserProfileAsync(string userId, CancellationToken ct = default);
+    Task<Dictionary<string, double>> GetUserSemanticTagPreferencesAsync(string userId, CancellationToken ct = default);
+    Task<Dictionary<string, double>> GetUserMoodTagPreferencesAsync(string userId, CancellationToken ct = default);
 }
 
 public class ScoredClip
@@ -52,6 +54,8 @@ public class RecommendationEngine : IRecommendationEngine
         }
 
         var genrePrefs = await _interactionRepository.GetUserGenrePreferencesAsync(userId, ct).ConfigureAwait(false);
+        var semanticTagPrefs = await GetUserSemanticTagPreferencesAsync(userId, ct).ConfigureAwait(false);
+        var moodTagPrefs = await GetUserMoodTagPreferencesAsync(userId, ct).ConfigureAwait(false);
         var likedClipIds = new HashSet<string>(await _interactionRepository.GetLikedClipIdsAsync(userId, ct).ConfigureAwait(false));
         var recentInteractions = await _interactionRepository.GetUserInteractionsAsync(userId, 50, ct).ConfigureAwait(false);
         var recentClipIds = new HashSet<string>(recentInteractions.Select(i => i.ClipId));
@@ -62,7 +66,7 @@ public class RecommendationEngine : IRecommendationEngine
         {
             if (recentClipIds.Contains(clip.Id)) continue;
 
-            var score = CalculateScore(clip, genrePrefs, likedClipIds);
+            var score = CalculateScore(clip, genrePrefs, semanticTagPrefs, moodTagPrefs, likedClipIds);
             scored.Add(new ScoredClip { Clip = clip, Score = score });
         }
 
@@ -81,18 +85,15 @@ public class RecommendationEngine : IRecommendationEngine
         if (interactions.Count == 0) return;
 
         var genreCounts = new Dictionary<string, double>();
+        var semanticTagCounts = new Dictionary<string, double>();
+        var moodTagCounts = new Dictionary<string, double>();
         var totalDwell = 0L;
         var count = 0;
 
         foreach (var interaction in interactions)
         {
             var clip = await _clipRepository.GetByIdAsync(interaction.ClipId, ct).ConfigureAwait(false);
-            if (clip?.Genre is null) continue;
-
-            if (!genreCounts.ContainsKey(clip.Genre))
-            {
-                genreCounts[clip.Genre] = 0;
-            }
+            if (clip == null) continue;
 
             var weight = interaction.InteractionType switch
             {
@@ -105,24 +106,54 @@ public class RecommendationEngine : IRecommendationEngine
                 _ => 0.5
             };
 
-            genreCounts[clip.Genre] += weight;
+            if (clip.Genre is not null)
+            {
+                if (!genreCounts.ContainsKey(clip.Genre))
+                {
+                    genreCounts[clip.Genre] = 0;
+                }
+                genreCounts[clip.Genre] += weight;
+            }
+
+            if (!string.IsNullOrEmpty(clip.SemanticTags))
+            {
+                var tags = clip.SemanticTags.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var tag in tags)
+                {
+                    var trimmedTag = tag.Trim();
+                    if (string.IsNullOrEmpty(trimmedTag)) continue;
+
+                    if (!semanticTagCounts.ContainsKey(trimmedTag))
+                    {
+                        semanticTagCounts[trimmedTag] = 0;
+                    }
+                    semanticTagCounts[trimmedTag] += weight;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(clip.MoodTag))
+            {
+                if (!moodTagCounts.ContainsKey(clip.MoodTag))
+                {
+                    moodTagCounts[clip.MoodTag] = 0;
+                }
+                moodTagCounts[clip.MoodTag] += weight;
+            }
+
             totalDwell += interaction.DwellTimeMs;
             count++;
         }
 
-        var totalWeight = genreCounts.Values.Sum(Math.Abs);
-        if (totalWeight > 0)
-        {
-            foreach (var key in genreCounts.Keys.ToList())
-            {
-                genreCounts[key] = Math.Max(0, genreCounts[key]) / totalWeight;
-            }
-        }
+        NormalizePreferences(genreCounts);
+        NormalizePreferences(semanticTagCounts);
+        NormalizePreferences(moodTagCounts);
 
         var profile = new UserProfile
         {
             UserId = userId,
             GenrePreferencesJson = JsonSerializer.Serialize(genreCounts),
+            SemanticTagPreferencesJson = JsonSerializer.Serialize(semanticTagCounts),
+            MoodTagPreferencesJson = JsonSerializer.Serialize(moodTagCounts),
             AvgDwellTimeMs = count > 0 ? (double)totalDwell / count : 0,
             TotalInteractions = interactions.Count,
             LastUpdated = DateTime.UtcNow
@@ -131,13 +162,90 @@ public class RecommendationEngine : IRecommendationEngine
         await _interactionRepository.UpdateUserProfileAsync(profile, ct).ConfigureAwait(false);
     }
 
-    private double CalculateScore(Clip clip, Dictionary<string, double> genrePrefs, HashSet<string> likedClipIds)
+    public async Task<Dictionary<string, double>> GetUserSemanticTagPreferencesAsync(string userId, CancellationToken ct = default)
+    {
+        var profile = await _interactionRepository.GetUserProfileAsync(userId, ct).ConfigureAwait(false);
+        if (profile is null || string.IsNullOrEmpty(profile.SemanticTagPreferencesJson))
+        {
+            return new Dictionary<string, double>();
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, double>>(profile.SemanticTagPreferencesJson) ?? new Dictionary<string, double>();
+        }
+        catch
+        {
+            return new Dictionary<string, double>();
+        }
+    }
+
+    public async Task<Dictionary<string, double>> GetUserMoodTagPreferencesAsync(string userId, CancellationToken ct = default)
+    {
+        var profile = await _interactionRepository.GetUserProfileAsync(userId, ct).ConfigureAwait(false);
+        if (profile is null || string.IsNullOrEmpty(profile.MoodTagPreferencesJson))
+        {
+            return new Dictionary<string, double>();
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, double>>(profile.MoodTagPreferencesJson) ?? new Dictionary<string, double>();
+        }
+        catch
+        {
+            return new Dictionary<string, double>();
+        }
+    }
+
+    private static void NormalizePreferences(Dictionary<string, double> preferences)
+    {
+        var totalWeight = preferences.Values.Sum(Math.Abs);
+        if (totalWeight > 0)
+        {
+            foreach (var key in preferences.Keys.ToList())
+            {
+                preferences[key] = Math.Max(0, preferences[key]) / totalWeight;
+            }
+        }
+    }
+
+    private double CalculateScore(Clip clip, Dictionary<string, double> genrePrefs, 
+        Dictionary<string, double> semanticTagPrefs, Dictionary<string, double> moodTagPrefs, 
+        HashSet<string> likedClipIds)
     {
         double score = 0;
 
         if (clip.Genre is not null && genrePrefs.TryGetValue(clip.Genre, out var genreWeight))
         {
             score += genreWeight * _weights.GenrePreference;
+        }
+
+        if (!string.IsNullOrEmpty(clip.SemanticTags))
+        {
+            var tags = clip.SemanticTags.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            var tagScore = 0.0;
+            var matchedTags = 0;
+
+            foreach (var tag in tags)
+            {
+                var trimmedTag = tag.Trim();
+                if (!string.IsNullOrEmpty(trimmedTag) && semanticTagPrefs.TryGetValue(trimmedTag, out var tagWeight))
+                {
+                    tagScore += tagWeight;
+                    matchedTags++;
+                }
+            }
+
+            if (matchedTags > 0)
+            {
+                score += (tagScore / matchedTags) * _weights.SemanticTagPreference;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(clip.MoodTag) && moodTagPrefs.TryGetValue(clip.MoodTag, out var moodWeight))
+        {
+            score += moodWeight * _weights.MoodTagPreference;
         }
 
         score += clip.SceneScore * _weights.SceneScore;
