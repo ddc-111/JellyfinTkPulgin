@@ -32,6 +32,7 @@ gh run view <run-id> --log-failed
 | `CS0117: 'TaskTriggerInfo' does not contain a definition for 'TriggerDaily'` | API change in 10.11.x | Use `TaskTriggerInfoType.DailyTrigger` |
 | `CS0103: The name 'SortOrder' does not exist` | Namespace moved in 10.11.x | Add `using Jellyfin.Database.Implementations.Enums;` |
 | `NETSDK1045: The current .NET SDK does not support .NET 9.0` | Wrong SDK version | Update `DOTNET_VERSION` in workflow to `9.0.x` |
+| `fatal: You are not currently on a branch` | Detached HEAD in release workflow | Ensure checkout uses `ref: main` in release job |
 
 ## Release
 
@@ -41,6 +42,21 @@ git push origin v1.0.0
 ```
 
 CI packages `Jellyfin.Clips.dll` + `Jellyfin.Clips.deps.json` into a zip, creates a GitHub Release, then auto-commits an updated `manifest.json` with the download URL and SHA256.
+
+**Important:** The release workflow checks out `main` branch (not detached HEAD) to allow pushing manifest.json updates. This is configured in `.github/workflows/build-and-release.yml`.
+
+## Plugin Repository Installation
+
+Users can install via Jellyfin plugin repository:
+
+1. Add repository URL in Jellyfin dashboard → Plugins → Repositories:
+   ```
+   https://raw.githubusercontent.com/ddc-111/JellyfinTkPulgin/main/manifest.json
+   ```
+2. Install from Plugins → Catalog
+3. Restart Jellyfin server
+
+The `manifest.json` must have a valid `versions` array with `sourceUrl` pointing to the release zip.
 
 ## Version Compatibility
 
