@@ -32,9 +32,7 @@ public class MultimodalAnalysisService : IMultimodalAnalysisService
     {
         "暴力", "血腥", "色情", "裸露", "恐怖", "惊悚", "死亡", "自杀",
         "毒品", "赌博", "政治敏感", "违法", "犯罪", "虐待", "歧视",
-        "暴力", "血腥", "色情", "裸露", "恐怖", "惊悚", "死亡", "自杀",
-        "暴力", "血腥", "色情", "裸露", "恐怖", "惊悚", "死亡", "自杀",
-        "violence", "blood", "nude", "naked", "gore", "恐怖", "horror",
+        "violence", "blood", "nude", "naked", "gore", "horror",
         "explicit", "sexual", "drug", "gambling", "abuse", "self-harm"
     };
 

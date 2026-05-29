@@ -71,7 +71,7 @@ dotnet restore
 dotnet build --configuration Release
 ```
 
-将 `Jellyfin.Clips/bin/Release/net8.0/Jellyfin.Clips.dll` 复制到 Jellyfin 插件目录。
+将 `Jellyfin.Clips/bin/Release/net9.0/Jellyfin.Clips.dll` 复制到 Jellyfin 插件目录。
 
 ## 配置说明
 
