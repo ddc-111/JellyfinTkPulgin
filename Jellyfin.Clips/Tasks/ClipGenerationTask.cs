@@ -46,9 +46,9 @@ public class ClipGenerationTask : IScheduledTask
 
         var query = new InternalItemsQuery
         {
-            IncludeItemTypes = new[] { MediaBrowser.Model.Entities.BaseItemKind.Movie, MediaBrowser.Model.Entities.BaseItemKind.Episode },
+            IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Episode },
             IsVirtualItem = false,
-            OrderBy = new[] { (MediaBrowser.Model.Entities.ItemSortBy.DateCreated, MediaBrowser.Model.Entities.SortOrder.Descending) }
+            OrderBy = new[] { (ItemSortBy.DateCreated, SortOrder.Descending) }
         };
 
         var items = _libraryManager.GetItemList(query);

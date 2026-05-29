@@ -94,10 +94,10 @@ public class IdleClipGenerator : BackgroundService
 
             var query = new InternalItemsQuery
             {
-                IncludeItemTypes = new[] { MediaBrowser.Model.Entities.BaseItemKind.Movie, MediaBrowser.Model.Entities.BaseItemKind.Episode },
+                IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Episode },
                 IsVirtualItem = false,
                 Limit = 10,
-                OrderBy = new[] { (MediaBrowser.Model.Entities.ItemSortBy.Random, MediaBrowser.Model.Entities.SortOrder.Ascending) }
+                OrderBy = new[] { (ItemSortBy.Random, SortOrder.Ascending) }
             };
 
             var items = _libraryManager.GetItemList(query);
