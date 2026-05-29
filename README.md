@@ -130,6 +130,16 @@ The plugin exposes the following REST API endpoints (authentication required):
 | `POST` | `/Plugins/Clips/Admin/Generate` | Manually trigger clip generation (admin) |
 | `GET` | `/Plugins/Clips/Admin/Status` | Check generation task status (admin) |
 
+## Frontend
+
+TikTok-style vertical feed interface:
+
+```
+http://{your-jellyfin-server}/web/#/plugin-pages/ClipsFeed
+```
+
+Or access via Jellyfin plugin entry point after installation.
+
 ## Architecture
 
 ```

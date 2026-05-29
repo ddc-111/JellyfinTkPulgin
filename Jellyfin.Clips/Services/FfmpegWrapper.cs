@@ -10,6 +10,7 @@ public interface IFfmpegWrapper
     Task<bool> ExtractClipAsync(string inputPath, string outputPath, long startTicks, long endTicks,
         string cropMode, string targetResolution, CancellationToken ct = default);
     Task<bool> GenerateThumbnailAsync(string inputPath, string outputPath, long atTicks, CancellationToken ct = default);
+    Task<bool> ExtractFrameAsync(string inputPath, string outputPath, long atTicks, CancellationToken ct = default);
     Task<TimeSpan> GetDurationAsync(string inputPath, CancellationToken ct = default);
 }
 
@@ -80,6 +81,18 @@ public class FfmpegWrapper : IFfmpegWrapper
 
         var args = string.Format(CultureInfo.InvariantCulture,
             "-ss {0:F3} -i \"{1}\" -vframes 1 -vf \"scale=480:-1\" -y \"{2}\"",
+            atSec, inputPath, outputPath);
+
+        var output = await RunFfmpegAsync(args, ct).ConfigureAwait(false);
+        return File.Exists(outputPath) && new FileInfo(outputPath).Length > 0;
+    }
+
+    public async Task<bool> ExtractFrameAsync(string inputPath, string outputPath, long atTicks, CancellationToken ct = default)
+    {
+        var atSec = atTicks / 10_000_000.0;
+
+        var args = string.Format(CultureInfo.InvariantCulture,
+            "-ss {0:F3} -i \"{1}\" -vframes 1 -vf \"scale=768:-1\" -q:v 2 -y \"{2}\"",
             atSec, inputPath, outputPath);
 
         var output = await RunFfmpegAsync(args, ct).ConfigureAwait(false);

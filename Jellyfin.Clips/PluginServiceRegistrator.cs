@@ -24,7 +24,9 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<IClipExtractionService, ClipExtractionService>();
         serviceCollection.AddSingleton<IRecommendationEngine, RecommendationEngine>();
         serviceCollection.AddSingleton<IFeedService, FeedService>();
+        serviceCollection.AddSingleton<IMultimodalAnalysisService, MultimodalAnalysisService>();
 
+        serviceCollection.AddHttpClient();
         serviceCollection.AddHostedService<IdleClipGenerator>();
     }
 }

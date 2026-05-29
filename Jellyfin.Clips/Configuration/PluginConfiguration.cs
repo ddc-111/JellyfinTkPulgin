@@ -19,6 +19,7 @@ public class PluginConfiguration : BasePluginConfiguration
         TargetResolution = "1080x1920";
         FeedPageSize = 20;
         RecommendationWeights = new RecommendationWeights();
+        MultimodalConfig = new MultimodalConfiguration();
     }
 
     public string FfmpegPath { get; set; }
@@ -34,6 +35,7 @@ public class PluginConfiguration : BasePluginConfiguration
     public string TargetResolution { get; set; }
     public int FeedPageSize { get; set; }
     public RecommendationWeights RecommendationWeights { get; set; }
+    public MultimodalConfiguration MultimodalConfig { get; set; }
 }
 
 public class RecommendationWeights
@@ -44,4 +46,17 @@ public class RecommendationWeights
     public double DiversityBonus { get; set; } = 0.1;
     public double SimilarUserPreference { get; set; } = 0.1;
     public double SceneScore { get; set; } = 0.1;
+}
+
+public class MultimodalConfiguration
+{
+    public bool EnableMultimodalAnalysis { get; set; } = false;
+    public string BaseUrl { get; set; } = "https://api.mimodel.com/v1";
+    public string ApiKey { get; set; } = string.Empty;
+    public string ModelName { get; set; } = "MiMo-VL-7B";
+    public int MaxTokens { get; set; } = 512;
+    public double Temperature { get; set; } = 0.7;
+    public int SampleFrameCount { get; set; } = 3;
+    public int RequestTimeoutSeconds { get; set; } = 30;
+    public int MaxRetryCount { get; set; } = 2;
 }

@@ -17,6 +17,7 @@ public class ClipExtractionService : IClipExtractionService
     private readonly ILibraryManager _libraryManager;
     private readonly IFfmpegWrapper _ffmpeg;
     private readonly IHighlightDetectionService _highlightDetection;
+    private readonly IMultimodalAnalysisService? _multimodalAnalysis;
     private readonly IClipRepository _clipRepository;
     private readonly ILogger<ClipExtractionService> _logger;
     private readonly PluginConfiguration _config;
@@ -26,7 +27,8 @@ public class ClipExtractionService : IClipExtractionService
         IFfmpegWrapper ffmpeg,
         IHighlightDetectionService highlightDetection,
         IClipRepository clipRepository,
-        ILogger<ClipExtractionService> logger)
+        ILogger<ClipExtractionService> logger,
+        IMultimodalAnalysisService? multimodalAnalysis = null)
     {
         _libraryManager = libraryManager;
         _ffmpeg = ffmpeg;
@@ -34,6 +36,7 @@ public class ClipExtractionService : IClipExtractionService
         _clipRepository = clipRepository;
         _logger = logger;
         _config = Plugin.Instance?.Configuration ?? new PluginConfiguration();
+        _multimodalAnalysis = multimodalAnalysis;
     }
 
     public async Task<int> ExtractClipsFromItemAsync(string sourceItemId, bool forceRegenerate, CancellationToken ct = default)
@@ -115,6 +118,37 @@ public class ClipExtractionService : IClipExtractionService
                 FileSizeBytes = File.Exists(clipPath) ? new FileInfo(clipPath).Length : 0,
                 IsProcessed = true
             };
+
+            if (_multimodalAnalysis != null && _config.MultimodalConfig.EnableMultimodalAnalysis)
+            {
+                try
+                {
+                    var analysisResult = await _multimodalAnalysis.AnalyzeClipAsync(
+                        item.Path, highlight.StartTicks, highlight.EndTicks, ct).ConfigureAwait(false);
+
+                    if (analysisResult != null && analysisResult.IsSuccess)
+                    {
+                        clip.AiTitle = analysisResult.Title;
+                        clip.AiDescription = analysisResult.Description;
+                        clip.SemanticTags = string.Join(",", analysisResult.SemanticTags);
+                        clip.MoodTag = analysisResult.MoodTag;
+                        clip.IsMultimodalAnalyzed = true;
+                        clip.MultimodalAnalyzedAt = DateTime.UtcNow;
+
+                        _logger.LogInformation("Multimodal analysis succeeded for clip {ClipId}: {Title}",
+                            clipId, analysisResult.Title);
+                    }
+                    else if (analysisResult != null)
+                    {
+                        _logger.LogWarning("Multimodal analysis failed for clip {ClipId}: {Reason}",
+                            clipId, analysisResult.FailureReason);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Multimodal analysis error for clip {ClipId}", clipId);
+                }
+            }
 
             await _clipRepository.AddAsync(clip, ct).ConfigureAwait(false);
             extracted++;

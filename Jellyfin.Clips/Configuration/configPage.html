@@ -101,6 +101,49 @@
                         <input id="WeightDiversity" name="WeightDiversity" type="number" is="emby-input" min="0" max="1" step="0.05" />
                     </div>
 
+                    <div class="sectionTitleContainer" style="margin-top: 2em;">
+                        <h3 class="sectionTitle">多模态 AI 分析（小米大模型）</h3>
+                    </div>
+
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input id="EnableMultimodal" type="checkbox" is="emby-checkbox" />
+                            <span>启用多模态语义分析</span>
+                        </label>
+                        <div class="fieldDescription">使用小米多模态大模型分析视频片段，自动生成标题和语义标签</div>
+                    </div>
+
+                    <div id="MultimodalSettings">
+                        <div class="inputContainer">
+                            <label class="inputLabel" for="MultimodalBaseUrl">API Base URL</label>
+                            <input id="MultimodalBaseUrl" name="MultimodalBaseUrl" type="text" is="emby-input" />
+                            <div class="fieldDescription">小米多模态大模型 API 地址（不含 /chat/completions）</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel" for="MultimodalApiKey">API Key</label>
+                            <input id="MultimodalApiKey" name="MultimodalApiKey" type="password" is="emby-input" />
+                            <div class="fieldDescription">小米多模态大模型 API 密钥</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel" for="MultimodalModel">模型名称</label>
+                            <input id="MultimodalModel" name="MultimodalModel" type="text" is="emby-input" />
+                            <div class="fieldDescription">例如：MiMo-VL-7B</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel" for="MultimodalFrames">采样帧数</label>
+                            <input id="MultimodalFrames" name="MultimodalFrames" type="number" is="emby-input" min="1" max="8" />
+                            <div class="fieldDescription">从每个片段中抽取的帧数（1-8），越多分析越准但消耗越大</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel" for="MultimodalTimeout">请求超时（秒）</label>
+                            <input id="MultimodalTimeout" name="MultimodalTimeout" type="number" is="emby-input" min="10" max="120" />
+                        </div>
+                    </div>
+
                     <div>
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                             <span>保存</span>
@@ -135,6 +178,16 @@
                     document.querySelector('#WeightRecency').value = weights.RecencyBonus || 0.15;
                     document.querySelector('#WeightDiversity').value = weights.DiversityBonus || 0.1;
 
+                    var multimodal = config.MultimodalConfig || {};
+                    document.querySelector('#EnableMultimodal').checked = multimodal.EnableMultimodalAnalysis === true;
+                    document.querySelector('#MultimodalBaseUrl').value = multimodal.BaseUrl || 'https://api.mimodel.com/v1';
+                    document.querySelector('#MultimodalApiKey').value = multimodal.ApiKey || '';
+                    document.querySelector('#MultimodalModel').value = multimodal.ModelName || 'MiMo-VL-7B';
+                    document.querySelector('#MultimodalFrames').value = multimodal.SampleFrameCount || 3;
+                    document.querySelector('#MultimodalTimeout').value = multimodal.RequestTimeoutSeconds || 30;
+
+                    toggleMultimodalSettings();
+
                     Dashboard.hideLoadingMsg();
                 });
             });
@@ -163,12 +216,31 @@
                         SimilarUserPreference: 0.1
                     };
 
+                    config.MultimodalConfig = {
+                        EnableMultimodalAnalysis: document.querySelector('#EnableMultimodal').checked,
+                        BaseUrl: document.querySelector('#MultimodalBaseUrl').value,
+                        ApiKey: document.querySelector('#MultimodalApiKey').value,
+                        ModelName: document.querySelector('#MultimodalModel').value,
+                        SampleFrameCount: parseInt(document.querySelector('#MultimodalFrames').value, 10),
+                        RequestTimeoutSeconds: parseInt(document.querySelector('#MultimodalTimeout').value, 10),
+                        MaxTokens: 512,
+                        Temperature: 0.7,
+                        MaxRetryCount: 2
+                    };
+
                     ApiClient.updatePluginConfiguration(pluginConfig.pluginUniqueId, config).then(function (result) {
                         Dashboard.processPluginConfigurationUpdateResult(result);
                     });
                 });
                 return false;
             });
+
+            function toggleMultimodalSettings() {
+                var enabled = document.querySelector('#EnableMultimodal').checked;
+                document.querySelector('#MultimodalSettings').style.display = enabled ? 'block' : 'none';
+            }
+
+            document.querySelector('#EnableMultimodal').addEventListener('change', toggleMultimodalSettings);
         </script>
     </div>
 </body>

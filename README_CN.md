@@ -130,6 +130,16 @@ dotnet build --configuration Release
 | `POST` | `/Plugins/Clips/Admin/Generate` | 手动触发片段生成（管理员） |
 | `GET` | `/Plugins/Clips/Admin/Status` | 查看生成任务状态（管理员） |
 
+## 前端界面
+
+抖音风格竖屏信息流界面地址：
+
+```
+http://{你的Jellyfin服务器地址}/web/#/plugin-pages/ClipsFeed
+```
+
+安装插件后也可通过 Jellyfin 插件入口访问。
+
 ## 项目架构
 
 ```

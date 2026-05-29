@@ -149,7 +149,13 @@ public class FeedService : IFeedService
             StreamUrl = $"/Plugins/Clips/Clip/{clip.Id}/stream",
             LikeCount = likeCount,
             AvgCompletionRate = avgCompletion,
-            HasLiked = hasLiked
+            HasLiked = hasLiked,
+            AiTitle = clip.AiTitle,
+            AiDescription = clip.AiDescription,
+            SemanticTags = string.IsNullOrEmpty(clip.SemanticTags)
+                ? new List<string>()
+                : clip.SemanticTags.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
+            MoodTag = clip.MoodTag
         };
     }
 }

@@ -18,5 +18,12 @@ public class Clip
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsProcessed { get; set; }
 
+    public string? AiTitle { get; set; }
+    public string? AiDescription { get; set; }
+    public string? SemanticTags { get; set; }
+    public string? MoodTag { get; set; }
+    public bool IsMultimodalAnalyzed { get; set; }
+    public DateTime? MultimodalAnalyzedAt { get; set; }
+
     public ICollection<UserInteraction> Interactions { get; set; } = new List<UserInteraction>();
 }

@@ -16,4 +16,8 @@ public class ClipDto
     public int LikeCount { get; set; }
     public double AvgCompletionRate { get; set; }
     public bool HasLiked { get; set; }
+    public string? AiTitle { get; set; }
+    public string? AiDescription { get; set; }
+    public List<string> SemanticTags { get; set; } = new();
+    public string? MoodTag { get; set; }
 }
