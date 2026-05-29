@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Jellyfin.Clips.Data.Entities;
 
 namespace Jellyfin.Clips.Data.Repositories;

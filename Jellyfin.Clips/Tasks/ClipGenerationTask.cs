@@ -1,4 +1,7 @@
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 using Jellyfin.Clips.Services;
