@@ -1,0 +1,12 @@
+[
+  {
+    "guid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Clips",
+    "overview": "TikTok-style short video feed for Jellyfin",
+    "description": "Extracts highlights from your video library during idle time and presents them in a vertical scrollable feed with recommendation algorithm. Features include smart scene detection via FFmpeg, user behavior tracking (watch time, likes, skips), and content-based recommendation engine. Jump from any clip directly to the original movie or episode.",
+    "owner": "ddc-111",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/ddc-111/JellyfinTkPulgin/main/assets/plugin-icon.png",
+    "versions": []
+  }
+]

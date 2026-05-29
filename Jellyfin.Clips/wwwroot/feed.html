@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clips - 短视频推荐</title>
+    <link rel="stylesheet" href="feed.css">
+</head>
+<body>
+    <div id="clips-feed-container">
+        <div id="clips-feed-header">
+            <h1>Clips</h1>
+            <div id="clips-feed-filter">
+                <select id="genre-filter">
+                    <option value="">全部</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="clips-feed" class="clips-feed">
+            <div id="loading-indicator" class="loading-indicator">
+                <div class="spinner"></div>
+                <span>加载中...</span>
+            </div>
+        </div>
+
+        <div id="clips-empty" class="clips-empty" style="display:none;">
+            <div class="empty-icon">🎬</div>
+            <h2>还没有精彩片段</h2>
+            <p>系统会在空闲时自动从你的视频库中提取精彩片段</p>
+            <button id="btn-manual-generate" class="btn-generate">立即生成</button>
+        </div>
+    </div>
+
+    <div id="video-modal" class="video-modal" style="display:none;">
+        <div class="video-modal-content">
+            <button class="modal-close" id="modal-close">&times;</button>
+            <video id="modal-video" autoplay loop playsinline></video>
+            <div class="video-info">
+                <h3 id="video-title"></h3>
+                <p id="video-source"></p>
+            </div>
+            <div class="interaction-bar">
+                <button class="interaction-btn" id="btn-like" title="喜欢">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span id="like-count">0</span>
+                </button>
+                <button class="interaction-btn" id="btn-original" title="看原片">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    <span>原片</span>
+                </button>
+                <button class="interaction-btn" id="btn-share" title="分享">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="feed.js"></script>
+</body>
+</html>

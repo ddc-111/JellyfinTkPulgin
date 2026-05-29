@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <Authors>JellyfinClips</Authors>
+    <Company>JellyfinClips</Company>
+    <Copyright>Copyright © JellyfinClips</Copyright>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+</Project>

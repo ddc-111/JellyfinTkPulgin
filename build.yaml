@@ -1,0 +1,19 @@
+---
+name: "Clips"
+guid: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+version: "1.0.0.0"
+targetAbi: "10.9.0.0"
+framework: "net8.0"
+overview: "TikTok-style short video feed for Jellyfin. Extracts highlights from your library and presents them in a vertical scrollable feed with recommendation engine."
+description: >
+  Clips automatically extracts精彩片段 from your video library during idle time
+  and presents them in a TikTok-like vertical feed. Features include smart scene
+  detection, user behavior tracking (watch time, likes, skips), and a recommendation
+  algorithm that learns your preferences. Jump from any clip directly to the original content.
+category: "General"
+owner: "JellyfinClips"
+artifacts:
+- "Jellyfin.Clips.dll"
+- "Jellyfin.Clips.deps.json"
+changelog: >
+  v1.0.0 - Initial release with clip extraction, recommendation engine, and vertical feed UI.

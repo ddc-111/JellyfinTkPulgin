@@ -1,0 +1,160 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  PLUGIN_GUID: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+  PLUGIN_NAME: 'Jellyfin.Clips'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-build
+          path: |
+            Jellyfin.Clips/bin/Release/net8.0/Jellyfin.Clips.dll
+            Jellyfin.Clips/bin/Release/net8.0/Jellyfin.Clips.deps.json
+          retention-days: 7
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Build Release
+        run: |
+          dotnet restore
+          dotnet build --configuration Release --no-restore
+
+      - name: Package plugin
+        id: package
+        run: |
+          mkdir -p artifact
+          cp Jellyfin.Clips/bin/Release/net8.0/Jellyfin.Clips.dll artifact/
+          cp Jellyfin.Clips/bin/Release/net8.0/Jellyfin.Clips.deps.json artifact/
+
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          ZIP_NAME="Jellyfin.Clips_${VERSION}.zip"
+          cd artifact
+          zip -r "../${ZIP_NAME}" .
+          cd ..
+          echo "zip_name=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+          SHA256=$(sha256sum "${ZIP_NAME}" | awk '{print $1}')
+          echo "sha256=${SHA256}" >> "$GITHUB_OUTPUT"
+          echo "Computed SHA256: ${SHA256}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.package.outputs.zip_name }}
+          generate_release_notes: true
+          name: "Release v${{ steps.package.outputs.version }}"
+
+      - name: Update manifest.json
+        run: |
+          VERSION="${{ steps.package.outputs.version }}"
+          VERSION_4="${VERSION}.0"
+          TAG="v${VERSION}"
+          ZIP_NAME="${{ steps.package.outputs.zip_name }}"
+          SHA256="${{ steps.package.outputs.sha256 }}"
+          REPO="${{ github.repository }}"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          SOURCE_URL="https://github.com/${REPO}/releases/download/${TAG}/${ZIP_NAME}"
+
+          if [ ! -f manifest.json ]; then
+            echo '[]' > manifest.json
+          fi
+
+          python3 -c "
+          import json, sys
+
+          with open('manifest.json', 'r') as f:
+              manifest = json.load(f)
+
+          plugin = None
+          for p in manifest:
+              if p.get('guid') == '${{ env.PLUGIN_GUID }}':
+                  plugin = p
+                  break
+
+          if plugin is None:
+              plugin = {
+                  'guid': '${{ env.PLUGIN_GUID }}',
+                  'name': 'Clips',
+                  'overview': 'TikTok-style short video feed for Jellyfin',
+                  'description': 'Extracts highlights from your video library during idle time and presents them in a vertical scrollable feed with recommendation algorithm. Jump from clips directly to original content.',
+                  'owner': 'ddc-111',
+                  'category': 'General',
+                  'imageUrl': 'https://raw.githubusercontent.com/${REPO}/main/assets/plugin-icon.png',
+                  'versions': []
+              }
+              manifest.append(plugin)
+
+          version_entry = {
+              'version': '${VERSION_4}',
+              'changelog': 'Release ${VERSION}',
+              'targetAbi': '10.9.0.0',
+              'sourceUrl': '${SOURCE_URL}',
+              'checksum': '${SHA256}',
+              'timestamp': '${TIMESTAMP}'
+          }
+
+          plugin['versions'] = [v for v in plugin.get('versions', []) if v.get('version') != '${VERSION_4}']
+          plugin['versions'].insert(0, version_entry)
+
+          with open('manifest.json', 'w') as f:
+              json.dump(manifest, f, indent=2)
+              f.write('\n')
+
+          print('manifest.json updated')
+          "
+
+      - name: Commit manifest update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git diff --cached --quiet || git commit -m "Update manifest.json for v${{ steps.package.outputs.version }}"
+          git push

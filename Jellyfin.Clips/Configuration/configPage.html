@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>Clips 插件配置</title>
+</head>
+<body>
+    <div id="ClipsConfigPage" data-role="page"
+         class="page type-interior pluginConfigurationPage"
+         data-require="emby-input,emby-button,emby-select,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="ClipsConfigForm">
+                    <div class="sectionTitleContainer">
+                        <h2 class="sectionTitle">Clips 插件配置</h2>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="FfmpegPath">FFmpeg 路径</label>
+                        <input id="FfmpegPath" name="FfmpegPath" type="text" is="emby-input" />
+                        <div class="fieldDescription">FFmpeg 可执行文件的完整路径</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="MaxClipDuration">最大片段时长（秒）</label>
+                        <input id="MaxClipDuration" name="MaxClipDuration" type="number" is="emby-input" min="5" max="300" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="MinClipDuration">最小片段时长（秒）</label>
+                        <input id="MinClipDuration" name="MinClipDuration" type="number" is="emby-input" min="3" max="120" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="SceneThreshold">场景检测阈值 (0.1-0.9)</label>
+                        <input id="SceneThreshold" name="SceneThreshold" type="number" is="emby-input" min="0.1" max="0.9" step="0.05" />
+                        <div class="fieldDescription">值越低检测到的场景越多，值越高只检测剧烈变化</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="MaxClipsPerVideo">每部影片最大片段数</label>
+                        <input id="MaxClipsPerVideo" name="MaxClipsPerVideo" type="number" is="emby-input" min="1" max="20" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="MaxTotalClips">总片段数上限</label>
+                        <input id="MaxTotalClips" name="MaxTotalClips" type="number" is="emby-input" min="50" max="10000" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="MaxStorageMb">最大存储空间 (MB)</label>
+                        <input id="MaxStorageMb" name="MaxStorageMb" type="number" is="emby-input" min="512" max="102400" />
+                    </div>
+
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="VerticalCropMode">竖屏裁剪模式</label>
+                        <select is="emby-select" id="VerticalCropMode" name="VerticalCropMode">
+                            <option value="center">居中裁剪</option>
+                            <option value="top">顶部裁剪</option>
+                            <option value="bottom">底部裁剪</option>
+                            <option value="smart">智能裁剪</option>
+                            <option value="letterbox">信箱模式（不裁剪）</option>
+                        </select>
+                        <div class="fieldDescription">横屏视频转竖屏时的裁剪策略</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="IdleMinutes">空闲检测时间（分钟）</label>
+                        <input id="IdleMinutes" name="IdleMinutes" type="number" is="emby-input" min="1" max="120" />
+                        <div class="fieldDescription">服务器无播放活动多久后开始自动生成片段</div>
+                    </div>
+
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input id="EnableAutoExtraction" type="checkbox" is="emby-checkbox" />
+                            <span>启用自动片段提取</span>
+                        </label>
+                    </div>
+
+                    <div class="sectionTitleContainer" style="margin-top: 2em;">
+                        <h3 class="sectionTitle">推荐算法权重</h3>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="WeightGenre">类型偏好权重</label>
+                        <input id="WeightGenre" name="WeightGenre" type="number" is="emby-input" min="0" max="1" step="0.05" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="WeightCompletion">完成率权重</label>
+                        <input id="WeightCompletion" name="WeightCompletion" type="number" is="emby-input" min="0" max="1" step="0.05" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="WeightRecency">新近度权重</label>
+                        <input id="WeightRecency" name="WeightRecency" type="number" is="emby-input" min="0" max="1" step="0.05" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="WeightDiversity">多样性权重</label>
+                        <input id="WeightDiversity" name="WeightDiversity" type="number" is="emby-input" min="0" max="1" step="0.05" />
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span>保存</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            var pluginConfig = {
+                pluginUniqueId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+            };
+
+            document.querySelector('#ClipsConfigPage').addEventListener('pageshow', function () {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginConfig.pluginUniqueId).then(function (config) {
+                    document.querySelector('#FfmpegPath').value = config.FfmpegPath || 'ffmpeg';
+                    document.querySelector('#MaxClipDuration').value = config.MaxClipDurationSeconds || 60;
+                    document.querySelector('#MinClipDuration').value = config.MinClipDurationSeconds || 10;
+                    document.querySelector('#SceneThreshold').value = config.SceneDetectionThreshold || 0.3;
+                    document.querySelector('#MaxClipsPerVideo').value = config.MaxClipsPerVideo || 5;
+                    document.querySelector('#MaxTotalClips').value = config.MaxTotalClips || 500;
+                    document.querySelector('#MaxStorageMb').value = config.MaxStorageMb || 5120;
+                    document.querySelector('#VerticalCropMode').value = config.VerticalCropMode || 'center';
+                    document.querySelector('#IdleMinutes').value = config.IdleDetectionMinutes || 10;
+                    document.querySelector('#EnableAutoExtraction').checked = config.EnableAutoExtraction !== false;
+
+                    var weights = config.RecommendationWeights || {};
+                    document.querySelector('#WeightGenre').value = weights.GenrePreference || 0.3;
+                    document.querySelector('#WeightCompletion').value = weights.CompletionRate || 0.25;
+                    document.querySelector('#WeightRecency').value = weights.RecencyBonus || 0.15;
+                    document.querySelector('#WeightDiversity').value = weights.DiversityBonus || 0.1;
+
+                    Dashboard.hideLoadingMsg();
+                });
+            });
+
+            document.querySelector('#ClipsConfigForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginConfig.pluginUniqueId).then(function (config) {
+                    config.FfmpegPath = document.querySelector('#FfmpegPath').value;
+                    config.MaxClipDurationSeconds = parseInt(document.querySelector('#MaxClipDuration').value, 10);
+                    config.MinClipDurationSeconds = parseInt(document.querySelector('#MinClipDuration').value, 10);
+                    config.SceneDetectionThreshold = parseFloat(document.querySelector('#SceneThreshold').value);
+                    config.MaxClipsPerVideo = parseInt(document.querySelector('#MaxClipsPerVideo').value, 10);
+                    config.MaxTotalClips = parseInt(document.querySelector('#MaxTotalClips').value, 10);
+                    config.MaxStorageMb = parseInt(document.querySelector('#MaxStorageMb').value, 10);
+                    config.VerticalCropMode = document.querySelector('#VerticalCropMode').value;
+                    config.IdleDetectionMinutes = parseInt(document.querySelector('#IdleMinutes').value, 10);
+                    config.EnableAutoExtraction = document.querySelector('#EnableAutoExtraction').checked;
+
+                    config.RecommendationWeights = {
+                        GenrePreference: parseFloat(document.querySelector('#WeightGenre').value),
+                        CompletionRate: parseFloat(document.querySelector('#WeightCompletion').value),
+                        RecencyBonus: parseFloat(document.querySelector('#WeightRecency').value),
+                        DiversityBonus: parseFloat(document.querySelector('#WeightDiversity').value),
+                        SceneScore: 0.1,
+                        SimilarUserPreference: 0.1
+                    };
+
+                    ApiClient.updatePluginConfiguration(pluginConfig.pluginUniqueId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
+                return false;
+            });
+        </script>
+    </div>
+</body>
+</html>
