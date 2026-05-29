@@ -8,6 +8,7 @@ public class ClipsDbContext : DbContext
     public DbSet<Clip> Clips => Set<Clip>();
     public DbSet<UserInteraction> UserInteractions => Set<UserInteraction>();
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+    public DbSet<ProcessingState> ProcessingStates => Set<ProcessingState>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -34,6 +35,7 @@ public class ClipsDbContext : DbContext
             entity.HasIndex(e => e.Genre);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.SceneScore);
+            entity.HasIndex(e => e.IsMultimodalAnalyzed);
         });
 
         modelBuilder.Entity<UserInteraction>(entity =>
@@ -50,6 +52,14 @@ public class ClipsDbContext : DbContext
         modelBuilder.Entity<UserProfile>(entity =>
         {
             entity.HasKey(e => e.UserId);
+        });
+
+        modelBuilder.Entity<ProcessingState>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.SourceItemId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => new { e.Status, e.UpdatedAt });
         });
     }
 }

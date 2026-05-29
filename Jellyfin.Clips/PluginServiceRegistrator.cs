@@ -18,6 +18,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
 
         serviceCollection.AddSingleton<IClipRepository, ClipRepository>();
         serviceCollection.AddSingleton<IInteractionRepository, InteractionRepository>();
+        serviceCollection.AddSingleton<IProcessingStateRepository, ProcessingStateRepository>();
 
         serviceCollection.AddSingleton<IFfmpegWrapper, FfmpegWrapper>();
         serviceCollection.AddSingleton<IHighlightDetectionService, HighlightDetectionService>();

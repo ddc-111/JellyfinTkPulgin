@@ -70,24 +70,70 @@ public class MultimodalAnalysisService : IMultimodalAnalysisService
             return null;
         }
 
-        try
-        {
-            var frames = await ExtractSampleFramesAsync(videoPath, startTicks, endTicks, config.SampleFrameCount, ct);
-            if (frames.Count == 0)
-            {
-                _logger.LogWarning("No frames extracted for analysis");
-                return new MultimodalAnalysisResult { IsSuccess = false, FailureReason = "无法提取视频帧" };
-            }
+        List<string>? frames = null;
+        var maxRetries = config.MaxRetryCount;
 
-            var result = await CallMultimodalApiAsync(frames, config, ct);
-            CleanupTempFiles(frames);
-            return result;
-        }
-        catch (Exception ex)
+        for (var attempt = 0; attempt <= maxRetries; attempt++)
         {
-            _logger.LogError(ex, "Multimodal analysis failed for {Path}", videoPath);
-            return new MultimodalAnalysisResult { IsSuccess = false, FailureReason = $"分析异常: {ex.Message}" };
+            try
+            {
+                if (ct.IsCancellationRequested)
+                {
+                    _logger.LogInformation("Multimodal analysis cancelled for {Path}", videoPath);
+                    return new MultimodalAnalysisResult { IsSuccess = false, FailureReason = "分析被取消" };
+                }
+
+                frames = await ExtractSampleFramesAsync(videoPath, startTicks, endTicks, config.SampleFrameCount, ct);
+                if (frames.Count == 0)
+                {
+                    _logger.LogWarning("No frames extracted for analysis");
+                    return new MultimodalAnalysisResult { IsSuccess = false, FailureReason = "无法提取视频帧" };
+                }
+
+                var result = await CallMultimodalApiAsync(frames, config, ct);
+                CleanupTempFiles(frames);
+                frames = null;
+
+                if (result.IsSuccess || result.FailureReason == "内容触发风控")
+                {
+                    return result;
+                }
+
+                if (attempt < maxRetries)
+                {
+                    _logger.LogWarning("Multimodal analysis attempt {Attempt} failed: {Reason}, retrying...",
+                        attempt + 1, result.FailureReason);
+                    await Task.Delay(TimeSpan.FromSeconds(2 * (attempt + 1)), ct).ConfigureAwait(false);
+                }
+                else
+                {
+                    return result;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                CleanupTempFiles(frames ?? new List<string>());
+                throw;
+            }
+            catch (Exception ex)
+            {
+                CleanupTempFiles(frames ?? new List<string>());
+                frames = null;
+
+                if (attempt < maxRetries)
+                {
+                    _logger.LogWarning(ex, "Multimodal analysis attempt {Attempt} error, retrying...", attempt + 1);
+                    await Task.Delay(TimeSpan.FromSeconds(2 * (attempt + 1)), ct).ConfigureAwait(false);
+                }
+                else
+                {
+                    _logger.LogError(ex, "Multimodal analysis failed for {Path} after {MaxRetries} retries", videoPath, maxRetries);
+                    return new MultimodalAnalysisResult { IsSuccess = false, FailureReason = $"分析异常: {ex.Message}" };
+                }
+            }
         }
+
+        return new MultimodalAnalysisResult { IsSuccess = false, FailureReason = "分析失败" };
     }
 
     private async Task<List<string>> ExtractSampleFramesAsync(

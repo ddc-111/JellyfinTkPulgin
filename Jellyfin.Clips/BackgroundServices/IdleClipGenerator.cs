@@ -19,6 +19,7 @@ public class IdleClipGenerator : BackgroundService
 
     private DateTime _lastActivityCheck = DateTime.MinValue;
     private bool _isGenerating = false;
+    private bool _isShuttingDown = false;
 
     public IdleClipGenerator(
         ISessionManager sessionManager,
@@ -37,10 +38,26 @@ public class IdleClipGenerator : BackgroundService
     {
         _logger.LogInformation("IdleClipGenerator started");
 
+        try
+        {
+            await _clipExtractionService.RecoverInterruptedTasksAsync(stoppingToken).ConfigureAwait(false);
+            _logger.LogInformation("Interrupted task recovery completed");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to recover interrupted tasks");
+        }
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
+                if (_isShuttingDown)
+                {
+                    _logger.LogInformation("Shutting down, skipping generation");
+                    break;
+                }
+
                 if (_config.EnableAutoExtraction && IsServerIdle())
                 {
                     await GenerateClipsAsync(stoppingToken).ConfigureAwait(false);
@@ -50,14 +67,44 @@ public class IdleClipGenerator : BackgroundService
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
+                _logger.LogInformation("IdleClipGenerator cancellation requested");
                 break;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in IdleClipGenerator");
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken).ConfigureAwait(false);
+                try
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
             }
         }
+
+        _logger.LogInformation("IdleClipGenerator stopped");
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("IdleClipGenerator stopping gracefully...");
+        _isShuttingDown = true;
+
+        var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+        try
+        {
+            await base.StopAsync(linkedCts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("IdleClipGenerator stop timed out");
+        }
+
+        _logger.LogInformation("IdleClipGenerator stopped");
     }
 
     private bool IsServerIdle()
@@ -85,7 +132,7 @@ public class IdleClipGenerator : BackgroundService
 
     private async Task GenerateClipsAsync(CancellationToken ct)
     {
-        if (_isGenerating) return;
+        if (_isGenerating || _isShuttingDown) return;
 
         _isGenerating = true;
         try
@@ -105,14 +152,28 @@ public class IdleClipGenerator : BackgroundService
 
             foreach (var item in items)
             {
-                if (ct.IsCancellationRequested) break;
-                if (!IsServerIdle()) break;
+                if (ct.IsCancellationRequested || _isShuttingDown)
+                {
+                    _logger.LogInformation("Clip generation interrupted by shutdown");
+                    break;
+                }
+
+                if (!IsServerIdle())
+                {
+                    _logger.LogInformation("Server no longer idle, stopping generation");
+                    break;
+                }
 
                 try
                 {
                     var count = await _clipExtractionService.ExtractClipsFromItemAsync(
                         item.Id.ToString(), false, ct).ConfigureAwait(false);
                     extracted += count;
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogInformation("Clip extraction cancelled for {Name}", item.Name);
+                    throw;
                 }
                 catch (Exception ex)
                 {

@@ -10,6 +10,8 @@ public interface IClipExtractionService
 {
     Task<int> ExtractClipsFromItemAsync(string sourceItemId, bool forceRegenerate, CancellationToken ct = default);
     Task<int> ProcessQueueAsync(CancellationToken ct = default);
+    Task<int> RecoverInterruptedTasksAsync(CancellationToken ct = default);
+    Task CleanupTempFilesAsync(CancellationToken ct = default);
 }
 
 public class ClipExtractionService : IClipExtractionService
@@ -19,6 +21,7 @@ public class ClipExtractionService : IClipExtractionService
     private readonly IHighlightDetectionService _highlightDetection;
     private readonly IMultimodalAnalysisService? _multimodalAnalysis;
     private readonly IClipRepository _clipRepository;
+    private readonly IProcessingStateRepository _processingStateRepository;
     private readonly ILogger<ClipExtractionService> _logger;
     private readonly PluginConfiguration _config;
 
@@ -27,6 +30,7 @@ public class ClipExtractionService : IClipExtractionService
         IFfmpegWrapper ffmpeg,
         IHighlightDetectionService highlightDetection,
         IClipRepository clipRepository,
+        IProcessingStateRepository processingStateRepository,
         ILogger<ClipExtractionService> logger,
         IMultimodalAnalysisService? multimodalAnalysis = null)
     {
@@ -34,6 +38,7 @@ public class ClipExtractionService : IClipExtractionService
         _ffmpeg = ffmpeg;
         _highlightDetection = highlightDetection;
         _clipRepository = clipRepository;
+        _processingStateRepository = processingStateRepository;
         _logger = logger;
         _config = Plugin.Instance?.Configuration ?? new PluginConfiguration();
         _multimodalAnalysis = multimodalAnalysis;
@@ -64,99 +69,166 @@ public class ClipExtractionService : IClipExtractionService
             }
         }
 
-        _logger.LogInformation("Extracting clips from {Name} ({Path})", item.Name, item.Path);
-
-        var highlights = await _highlightDetection.DetectHighlightsAsync(
-            item.Path,
-            _config.SceneDetectionThreshold,
-            _config.MinClipDurationSeconds,
-            _config.MaxClipDurationSeconds,
-            _config.MaxClipsPerVideo,
-            ct).ConfigureAwait(false);
-
-        var clipDir = GetClipDirectory();
-        var genre = item.Genres?.FirstOrDefault();
-        var extracted = 0;
-
-        foreach (var highlight in highlights)
+        var processingState = await _processingStateRepository.GetBySourceItemIdAsync(sourceItemId, ct).ConfigureAwait(false);
+        if (processingState != null && processingState.Status == ProcessingStatus.InProgress)
         {
-            ct.ThrowIfCancellationRequested();
-
-            var clipId = Guid.NewGuid().ToString();
-            var clipFileName = $"{clipId}.mp4";
-            var thumbFileName = $"{clipId}.jpg";
-            var clipPath = Path.Combine(clipDir, clipFileName);
-            var thumbPath = Path.Combine(clipDir, thumbFileName);
-
-            var success = await _ffmpeg.ExtractClipAsync(
-                item.Path, clipPath, highlight.StartTicks, highlight.EndTicks,
-                _config.VerticalCropMode, _config.TargetResolution, ct).ConfigureAwait(false);
-
-            if (!success)
-            {
-                _logger.LogWarning("Failed to extract clip from {Name} at {Start}", item.Name, highlight.StartTimeSeconds);
-                continue;
-            }
-
-            var midTicks = highlight.StartTicks + (highlight.EndTicks - highlight.StartTicks) / 2;
-            await _ffmpeg.GenerateThumbnailAsync(item.Path, thumbPath, midTicks, ct).ConfigureAwait(false);
-
-            var clip = new Clip
-            {
-                Id = clipId,
-                SourceItemId = sourceItemId,
-                SourceItemName = item.Name,
-                SourceItemOverview = item.Overview,
-                StartTimeTicks = highlight.StartTicks,
-                EndTimeTicks = highlight.EndTicks,
-                FilePath = clipPath,
-                ThumbnailPath = File.Exists(thumbPath) ? thumbPath : null,
-                Genre = genre,
-                SceneScore = highlight.Score,
-                DurationSeconds = highlight.DurationSeconds,
-                CropMode = _config.VerticalCropMode,
-                FileSizeBytes = File.Exists(clipPath) ? new FileInfo(clipPath).Length : 0,
-                IsProcessed = true
-            };
-
-            if (_multimodalAnalysis != null && _config.MultimodalConfig.EnableMultimodalAnalysis)
-            {
-                try
-                {
-                    var analysisResult = await _multimodalAnalysis.AnalyzeClipAsync(
-                        item.Path, highlight.StartTicks, highlight.EndTicks, ct).ConfigureAwait(false);
-
-                    if (analysisResult != null && analysisResult.IsSuccess)
-                    {
-                        clip.AiTitle = analysisResult.Title;
-                        clip.AiDescription = analysisResult.Description;
-                        clip.SemanticTags = string.Join(",", analysisResult.SemanticTags);
-                        clip.MoodTag = analysisResult.MoodTag;
-                        clip.IsMultimodalAnalyzed = true;
-                        clip.MultimodalAnalyzedAt = DateTime.UtcNow;
-
-                        _logger.LogInformation("Multimodal analysis succeeded for clip {ClipId}: {Title}",
-                            clipId, analysisResult.Title);
-                    }
-                    else if (analysisResult != null)
-                    {
-                        _logger.LogWarning("Multimodal analysis failed for clip {ClipId}: {Reason}",
-                            clipId, analysisResult.FailureReason);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Multimodal analysis error for clip {ClipId}", clipId);
-                }
-            }
-
-            await _clipRepository.AddAsync(clip, ct).ConfigureAwait(false);
-            extracted++;
-            _logger.LogInformation("Extracted clip {ClipId} from {Name} ({Start:F1}s - {End:F1}s)",
-                clipId, item.Name, highlight.StartTimeSeconds, highlight.EndTimeSeconds);
+            _logger.LogInformation("Item {Id} is already being processed, skipping", sourceItemId);
+            return 0;
         }
 
-        return extracted;
+        processingState = new ProcessingState
+        {
+            SourceItemId = sourceItemId,
+            SourceItemName = item.Name,
+            Status = ProcessingStatus.InProgress,
+            Phase = ProcessingPhase.Extraction
+        };
+        await _processingStateRepository.CreateAsync(processingState, ct).ConfigureAwait(false);
+
+        try
+        {
+            _logger.LogInformation("Extracting clips from {Name} ({Path})", item.Name, item.Path);
+
+            var highlights = await _highlightDetection.DetectHighlightsAsync(
+                item.Path,
+                _config.SceneDetectionThreshold,
+                _config.MinClipDurationSeconds,
+                _config.MaxClipDurationSeconds,
+                _config.MaxClipsPerVideo,
+                ct).ConfigureAwait(false);
+
+            processingState.TotalClips = highlights.Count;
+            await _processingStateRepository.UpdateAsync(processingState, ct).ConfigureAwait(false);
+
+            var clipDir = GetClipDirectory();
+            var genre = item.Genres?.FirstOrDefault();
+            var extracted = 0;
+
+            foreach (var highlight in highlights)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                var clipId = Guid.NewGuid().ToString();
+                var clipFileName = $"{clipId}.mp4";
+                var thumbFileName = $"{clipId}.jpg";
+                var clipPath = Path.Combine(clipDir, clipFileName);
+                var thumbPath = Path.Combine(clipDir, thumbFileName);
+
+                processingState.CurrentClipId = clipId;
+                processingState.TempFilePath = clipPath;
+                processingState.Phase = ProcessingPhase.Extraction;
+                await _processingStateRepository.UpdateAsync(processingState, ct).ConfigureAwait(false);
+
+                var success = await _ffmpeg.ExtractClipAsync(
+                    item.Path, clipPath, highlight.StartTicks, highlight.EndTicks,
+                    _config.VerticalCropMode, _config.TargetResolution, ct).ConfigureAwait(false);
+
+                if (!success)
+                {
+                    _logger.LogWarning("Failed to extract clip from {Name} at {Start}", item.Name, highlight.StartTimeSeconds);
+                    CleanupFile(clipPath);
+                    continue;
+                }
+
+                processingState.Phase = ProcessingPhase.ThumbnailGeneration;
+                await _processingStateRepository.UpdateAsync(processingState, ct).ConfigureAwait(false);
+
+                var midTicks = highlight.StartTicks + (highlight.EndTicks - highlight.StartTicks) / 2;
+                await _ffmpeg.GenerateThumbnailAsync(item.Path, thumbPath, midTicks, ct).ConfigureAwait(false);
+
+                var clip = new Clip
+                {
+                    Id = clipId,
+                    SourceItemId = sourceItemId,
+                    SourceItemName = item.Name,
+                    SourceItemOverview = item.Overview,
+                    StartTimeTicks = highlight.StartTicks,
+                    EndTimeTicks = highlight.EndTicks,
+                    FilePath = clipPath,
+                    ThumbnailPath = File.Exists(thumbPath) ? thumbPath : null,
+                    Genre = genre,
+                    SceneScore = highlight.Score,
+                    DurationSeconds = highlight.DurationSeconds,
+                    CropMode = _config.VerticalCropMode,
+                    FileSizeBytes = File.Exists(clipPath) ? new FileInfo(clipPath).Length : 0,
+                    IsProcessed = true
+                };
+
+                if (_multimodalAnalysis != null && _config.MultimodalConfig.EnableMultimodalAnalysis)
+                {
+                    processingState.Phase = ProcessingPhase.MultimodalAnalysis;
+                    await _processingStateRepository.UpdateAsync(processingState, ct).ConfigureAwait(false);
+
+                    try
+                    {
+                        var analysisResult = await _multimodalAnalysis.AnalyzeClipAsync(
+                            item.Path, highlight.StartTicks, highlight.EndTicks, ct).ConfigureAwait(false);
+
+                        if (analysisResult != null && analysisResult.IsSuccess)
+                        {
+                            clip.AiTitle = analysisResult.Title;
+                            clip.AiDescription = analysisResult.Description;
+                            clip.SemanticTags = string.Join(",", analysisResult.SemanticTags);
+                            clip.MoodTag = analysisResult.MoodTag;
+                            clip.IsMultimodalAnalyzed = true;
+                            clip.MultimodalAnalyzedAt = DateTime.UtcNow;
+
+                            _logger.LogInformation("Multimodal analysis succeeded for clip {ClipId}: {Title}",
+                                clipId, analysisResult.Title);
+                        }
+                        else if (analysisResult != null)
+                        {
+                            _logger.LogWarning("Multimodal analysis failed for clip {ClipId}: {Reason}",
+                                clipId, analysisResult.FailureReason);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Multimodal analysis error for clip {ClipId}", clipId);
+                    }
+                }
+
+                await _clipRepository.AddAsync(clip, ct).ConfigureAwait(false);
+                extracted++;
+                processingState.ProcessedClips = extracted;
+                processingState.TempFilePath = null;
+                await _processingStateRepository.UpdateAsync(processingState, ct).ConfigureAwait(false);
+
+                _logger.LogInformation("Extracted clip {ClipId} from {Name} ({Start:F1}s - {End:F1}s)",
+                    clipId, item.Name, highlight.StartTimeSeconds, highlight.EndTimeSeconds);
+            }
+
+            processingState.Status = ProcessingStatus.Completed;
+            processingState.CompletedAt = DateTime.UtcNow;
+            await _processingStateRepository.UpdateAsync(processingState, ct).ConfigureAwait(false);
+
+            return extracted;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Extraction cancelled for {Id}", sourceItemId);
+            processingState.Status = ProcessingStatus.Cancelled;
+            await _processingStateRepository.UpdateAsync(processingState, ct).ConfigureAwait(false);
+
+            if (processingState.TempFilePath != null)
+            {
+                CleanupFile(processingState.TempFilePath);
+            }
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Extraction failed for {Id}", sourceItemId);
+            processingState.Status = ProcessingStatus.Failed;
+            processingState.ErrorMessage = ex.Message;
+            await _processingStateRepository.UpdateAsync(processingState, ct).ConfigureAwait(false);
+
+            if (processingState.TempFilePath != null)
+            {
+                CleanupFile(processingState.TempFilePath);
+            }
+            throw;
+        }
     }
 
     public async Task<int> ProcessQueueAsync(CancellationToken ct = default)
@@ -184,6 +256,101 @@ public class ClipExtractionService : IClipExtractionService
         }
 
         return processed;
+    }
+
+    public async Task<int> RecoverInterruptedTasksAsync(CancellationToken ct = default)
+    {
+        _logger.LogInformation("Recovering interrupted tasks...");
+
+        await _processingStateRepository.MarkInterruptedAsync(ct).ConfigureAwait(false);
+
+        var interruptedTasks = await _processingStateRepository.GetInterruptedTasksAsync(ct).ConfigureAwait(false);
+        var recovered = 0;
+
+        foreach (var task in interruptedTasks)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            try
+            {
+                if (task.RetryCount >= 3)
+                {
+                    _logger.LogWarning("Task for {Id} exceeded max retries, marking as failed", task.SourceItemId);
+                    task.Status = ProcessingStatus.Failed;
+                    task.ErrorMessage = "Exceeded maximum retry count";
+                    await _processingStateRepository.UpdateAsync(task, ct).ConfigureAwait(false);
+                    continue;
+                }
+
+                if (task.TempFilePath != null)
+                {
+                    CleanupFile(task.TempFilePath);
+                }
+
+                task.RetryCount++;
+                task.Status = ProcessingStatus.Pending;
+                task.Phase = ProcessingPhase.Extraction;
+                task.TempFilePath = null;
+                await _processingStateRepository.UpdateAsync(task, ct).ConfigureAwait(false);
+
+                _logger.LogInformation("Recovered task for {Id}, retry {Count}", task.SourceItemId, task.RetryCount);
+                recovered++;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to recover task for {Id}", task.SourceItemId);
+            }
+        }
+
+        await CleanupOldTempFilesAsync(ct).ConfigureAwait(false);
+
+        return recovered;
+    }
+
+    public async Task CleanupTempFilesAsync(CancellationToken ct = default)
+    {
+        await CleanupOldTempFilesAsync(ct).ConfigureAwait(false);
+        await _processingStateRepository.CleanupOldStatesAsync(TimeSpan.FromDays(7), ct).ConfigureAwait(false);
+    }
+
+    private async Task CleanupOldTempFilesAsync(CancellationToken ct)
+    {
+        var clipDir = GetClipDirectory();
+        try
+        {
+            var tempFiles = Directory.GetFiles(clipDir, "*.tmp");
+            foreach (var file in tempFiles)
+            {
+                ct.ThrowIfCancellationRequested();
+                try
+                {
+                    var fileInfo = new FileInfo(file);
+                    if (fileInfo.CreationTimeUtc < DateTime.UtcNow.AddHours(-1))
+                    {
+                        File.Delete(file);
+                        _logger.LogInformation("Cleaned up temp file {File}", file);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to cleanup temp file {File}", file);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to enumerate temp files");
+        }
+    }
+
+    private static void CleanupFile(string? filePath)
+    {
+        if (filePath == null) return;
+        try
+        {
+            if (File.Exists(filePath)) File.Delete(filePath);
+        }
+        catch { }
     }
 
     private string GetClipDirectory()
