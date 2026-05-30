@@ -158,7 +158,7 @@
                 pluginUniqueId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
             };
 
-            document.querySelector('#ClipsConfigPage').addEventListener('pageshow', function () {
+            function loadConfig() {
                 Dashboard.showLoadingMsg();
                 ApiClient.getPluginConfiguration(pluginConfig.pluginUniqueId).then(function (config) {
                     document.querySelector('#FfmpegPath').value = config.FfmpegPath || 'ffmpeg';
@@ -190,7 +190,11 @@
 
                     Dashboard.hideLoadingMsg();
                 });
-            });
+            }
+
+            document.querySelector('#ClipsConfigPage').addEventListener('pageshow', loadConfig);
+            document.addEventListener('DOMContentLoaded', loadConfig);
+            if (document.readyState !== 'loading') loadConfig();
 
             document.querySelector('#ClipsConfigForm').addEventListener('submit', function (e) {
                 e.preventDefault();

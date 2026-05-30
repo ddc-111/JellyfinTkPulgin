@@ -22,21 +22,23 @@ public interface IClipRepository
 
 public class ClipRepository : IClipRepository
 {
-    private readonly ClipsDbContext _db;
+    private readonly IDbContextFactory<ClipsDbContext> _dbFactory;
 
-    public ClipRepository(ClipsDbContext db)
+    public ClipRepository(IDbContextFactory<ClipsDbContext> dbFactory)
     {
-        _db = db;
+        _dbFactory = dbFactory;
     }
 
     public async Task<Clip?> GetByIdAsync(string id, CancellationToken ct = default)
     {
-        return await _db.Clips.FindAsync([id], ct).ConfigureAwait(false);
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.Clips.FindAsync([id], ct).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<Clip>> GetBySourceItemIdAsync(string sourceItemId, CancellationToken ct = default)
     {
-        return await _db.Clips
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.Clips
             .Where(c => c.SourceItemId == sourceItemId)
             .OrderByDescending(c => c.SceneScore)
             .ToListAsync(ct).ConfigureAwait(false);
@@ -44,7 +46,8 @@ public class ClipRepository : IClipRepository
 
     public async Task<IReadOnlyList<Clip>> GetRandomClipsAsync(int count, CancellationToken ct = default)
     {
-        return await _db.Clips
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.Clips
             .Where(c => c.IsProcessed)
             .OrderBy(_ => EF.Functions.Random())
             .Take(count)
@@ -53,7 +56,8 @@ public class ClipRepository : IClipRepository
 
     public async Task<IReadOnlyList<Clip>> GetClipsByGenreAsync(string genre, int count, CancellationToken ct = default)
     {
-        return await _db.Clips
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.Clips
             .Where(c => c.IsProcessed && c.Genre == genre)
             .OrderByDescending(c => c.SceneScore)
             .Take(count)
@@ -62,7 +66,8 @@ public class ClipRepository : IClipRepository
 
     public async Task<IReadOnlyList<Clip>> GetRecentClipsAsync(int count, CancellationToken ct = default)
     {
-        return await _db.Clips
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.Clips
             .Where(c => c.IsProcessed)
             .OrderByDescending(c => c.CreatedAt)
             .Take(count)
@@ -71,53 +76,61 @@ public class ClipRepository : IClipRepository
 
     public async Task<IReadOnlyList<Clip>> GetUnprocessedClipsAsync(CancellationToken ct = default)
     {
-        return await _db.Clips
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.Clips
             .Where(c => !c.IsProcessed)
             .ToListAsync(ct).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<Clip>> GetAllAsync(CancellationToken ct = default)
     {
-        return await _db.Clips.ToListAsync(ct).ConfigureAwait(false);
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.Clips.ToListAsync(ct).ConfigureAwait(false);
     }
 
     public async Task AddAsync(Clip clip, CancellationToken ct = default)
     {
-        _db.Clips.Add(clip);
-        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        db.Clips.Add(clip);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task UpdateAsync(Clip clip, CancellationToken ct = default)
     {
-        _db.Clips.Update(clip);
-        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        db.Clips.Update(clip);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task DeleteAsync(string id, CancellationToken ct = default)
     {
-        var clip = await _db.Clips.FindAsync([id], ct).ConfigureAwait(false);
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var clip = await db.Clips.FindAsync([id], ct).ConfigureAwait(false);
         if (clip is not null)
         {
-            _db.Clips.Remove(clip);
-            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+            db.Clips.Remove(clip);
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
         }
     }
 
     public async Task<int> GetTotalCountAsync(CancellationToken ct = default)
     {
-        return await _db.Clips.CountAsync(ct).ConfigureAwait(false);
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.Clips.CountAsync(ct).ConfigureAwait(false);
     }
 
     public async Task<long> GetTotalFileSizeAsync(CancellationToken ct = default)
     {
-        return await _db.Clips.SumAsync(c => c.FileSizeBytes, ct).ConfigureAwait(false);
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.Clips.SumAsync(c => c.FileSizeBytes, ct).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<Clip>> GetClipsForSourceItemsAsync(
         IEnumerable<string> sourceItemIds, CancellationToken ct = default)
     {
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var ids = sourceItemIds.ToList();
-        return await _db.Clips
+        return await db.Clips
             .Where(c => ids.Contains(c.SourceItemId) && c.IsProcessed)
             .OrderByDescending(c => c.SceneScore)
             .ToListAsync(ct).ConfigureAwait(false);

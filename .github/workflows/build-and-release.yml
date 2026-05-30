@@ -152,10 +152,17 @@ jobs:
           print('manifest.json updated')
           "
 
+      - name: Update build.yaml version
+        run: |
+          VERSION="${{ steps.package.outputs.version }}"
+          VERSION_4="${VERSION}.0"
+          sed -i "s/^version:.*$/version: \"${VERSION_4}\"/" build.yaml
+          echo "build.yaml updated to version ${VERSION_4}"
+
       - name: Commit manifest update
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add manifest.json
-          git diff --cached --quiet || git commit -m "Update manifest.json for v${{ steps.package.outputs.version }}"
+          git add manifest.json build.yaml
+          git diff --cached --quiet || git commit -m "Update manifest.json and build.yaml for v${{ steps.package.outputs.version }}"
           git push

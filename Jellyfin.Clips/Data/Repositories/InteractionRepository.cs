@@ -19,23 +19,25 @@ public interface IInteractionRepository
 
 public class InteractionRepository : IInteractionRepository
 {
-    private readonly ClipsDbContext _db;
+    private readonly IDbContextFactory<ClipsDbContext> _dbFactory;
 
-    public InteractionRepository(ClipsDbContext db)
+    public InteractionRepository(IDbContextFactory<ClipsDbContext> dbFactory)
     {
-        _db = db;
+        _dbFactory = dbFactory;
     }
 
     public async Task RecordInteractionAsync(UserInteraction interaction, CancellationToken ct = default)
     {
-        _db.UserInteractions.Add(interaction);
-        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        db.UserInteractions.Add(interaction);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<UserInteraction>> GetUserInteractionsAsync(
         string userId, int limit = 100, CancellationToken ct = default)
     {
-        return await _db.UserInteractions
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.UserInteractions
             .Where(i => i.UserId == userId)
             .OrderByDescending(i => i.Timestamp)
             .Take(limit)
@@ -45,7 +47,8 @@ public class InteractionRepository : IInteractionRepository
     public async Task<IReadOnlyList<UserInteraction>> GetClipInteractionsAsync(
         string clipId, CancellationToken ct = default)
     {
-        return await _db.UserInteractions
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.UserInteractions
             .Where(i => i.ClipId == clipId)
             .OrderByDescending(i => i.Timestamp)
             .ToListAsync(ct).ConfigureAwait(false);
@@ -53,21 +56,23 @@ public class InteractionRepository : IInteractionRepository
 
     public async Task<UserProfile?> GetUserProfileAsync(string userId, CancellationToken ct = default)
     {
-        return await _db.UserProfiles.FindAsync([userId], ct).ConfigureAwait(false);
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.UserProfiles.FindAsync([userId], ct).ConfigureAwait(false);
     }
 
     public async Task UpdateUserProfileAsync(UserProfile profile, CancellationToken ct = default)
     {
-        var existing = await _db.UserProfiles.FindAsync([profile.UserId], ct).ConfigureAwait(false);
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var existing = await db.UserProfiles.FindAsync([profile.UserId], ct).ConfigureAwait(false);
         if (existing is null)
         {
-            _db.UserProfiles.Add(profile);
+            db.UserProfiles.Add(profile);
         }
         else
         {
-            _db.Entry(existing).CurrentValues.SetValues(profile);
+            db.Entry(existing).CurrentValues.SetValues(profile);
         }
-        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task<Dictionary<string, double>> GetUserGenrePreferencesAsync(
@@ -92,7 +97,8 @@ public class InteractionRepository : IInteractionRepository
 
     public async Task<double> GetAverageCompletionRateAsync(string clipId, CancellationToken ct = default)
     {
-        var interactions = await _db.UserInteractions
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var interactions = await db.UserInteractions
             .Where(i => i.ClipId == clipId && i.InteractionType == InteractionType.View)
             .ToListAsync(ct).ConfigureAwait(false);
 
@@ -101,21 +107,24 @@ public class InteractionRepository : IInteractionRepository
 
     public async Task<int> GetLikeCountAsync(string clipId, CancellationToken ct = default)
     {
-        return await _db.UserInteractions
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.UserInteractions
             .CountAsync(i => i.ClipId == clipId && i.InteractionType == InteractionType.Like, ct)
             .ConfigureAwait(false);
     }
 
     public async Task<bool> HasUserLikedClipAsync(string userId, string clipId, CancellationToken ct = default)
     {
-        return await _db.UserInteractions
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.UserInteractions
             .AnyAsync(i => i.UserId == userId && i.ClipId == clipId && i.InteractionType == InteractionType.Like, ct)
             .ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<string>> GetLikedClipIdsAsync(string userId, CancellationToken ct = default)
     {
-        return await _db.UserInteractions
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.UserInteractions
             .Where(i => i.UserId == userId && i.InteractionType == InteractionType.Like)
             .Select(i => i.ClipId)
             .Distinct()

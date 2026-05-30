@@ -15,11 +15,17 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         IServiceCollection serviceCollection,
         IServerApplicationHost applicationHost)
     {
-        serviceCollection.AddSingleton<ClipsDbContext>(sp =>
+        serviceCollection.AddDbContextFactory<ClipsDbContext>(options =>
         {
-            var ctx = new ClipsDbContext();
-            ctx.Database.EnsureCreated();
-            return ctx;
+            var dbPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "jellyfin", "plugins", "clips", "clips.db");
+            var dir = Path.GetDirectoryName(dbPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            options.UseSqlite($"Data Source={dbPath}");
         });
 
         serviceCollection.AddSingleton<IClipRepository, ClipRepository>();

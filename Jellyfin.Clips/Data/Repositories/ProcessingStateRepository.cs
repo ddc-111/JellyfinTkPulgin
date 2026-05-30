@@ -17,21 +17,23 @@ public interface IProcessingStateRepository
 
 public class ProcessingStateRepository : IProcessingStateRepository
 {
-    private readonly ClipsDbContext _db;
+    private readonly IDbContextFactory<ClipsDbContext> _dbFactory;
 
-    public ProcessingStateRepository(ClipsDbContext db)
+    public ProcessingStateRepository(IDbContextFactory<ClipsDbContext> dbFactory)
     {
-        _db = db;
+        _dbFactory = dbFactory;
     }
 
     public async Task<ProcessingState?> GetByIdAsync(string id, CancellationToken ct = default)
     {
-        return await _db.ProcessingStates.FindAsync([id], ct).ConfigureAwait(false);
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.ProcessingStates.FindAsync([id], ct).ConfigureAwait(false);
     }
 
     public async Task<ProcessingState?> GetBySourceItemIdAsync(string sourceItemId, CancellationToken ct = default)
     {
-        return await _db.ProcessingStates
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.ProcessingStates
             .Where(p => p.SourceItemId == sourceItemId && 
                    (p.Status == ProcessingStatus.InProgress || p.Status == ProcessingStatus.Pending))
             .FirstOrDefaultAsync(ct).ConfigureAwait(false);
@@ -39,7 +41,8 @@ public class ProcessingStateRepository : IProcessingStateRepository
 
     public async Task<IReadOnlyList<ProcessingState>> GetInterruptedTasksAsync(CancellationToken ct = default)
     {
-        return await _db.ProcessingStates
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.ProcessingStates
             .Where(p => p.Status == ProcessingStatus.InProgress || p.Status == ProcessingStatus.Interrupted)
             .OrderBy(p => p.CreatedAt)
             .ToListAsync(ct).ConfigureAwait(false);
@@ -47,7 +50,8 @@ public class ProcessingStateRepository : IProcessingStateRepository
 
     public async Task<IReadOnlyList<ProcessingState>> GetPendingTasksAsync(CancellationToken ct = default)
     {
-        return await _db.ProcessingStates
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.ProcessingStates
             .Where(p => p.Status == ProcessingStatus.Pending)
             .OrderBy(p => p.CreatedAt)
             .ToListAsync(ct).ConfigureAwait(false);
@@ -55,21 +59,24 @@ public class ProcessingStateRepository : IProcessingStateRepository
 
     public async Task<ProcessingState> CreateAsync(ProcessingState state, CancellationToken ct = default)
     {
-        _db.ProcessingStates.Add(state);
-        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        db.ProcessingStates.Add(state);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return state;
     }
 
     public async Task UpdateAsync(ProcessingState state, CancellationToken ct = default)
     {
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         state.UpdatedAt = DateTime.UtcNow;
-        _db.ProcessingStates.Update(state);
-        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        db.ProcessingStates.Update(state);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task MarkInterruptedAsync(CancellationToken ct = default)
     {
-        var inProgress = await _db.ProcessingStates
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var inProgress = await db.ProcessingStates
             .Where(p => p.Status == ProcessingStatus.InProgress)
             .ToListAsync(ct).ConfigureAwait(false);
 
@@ -79,20 +86,21 @@ public class ProcessingStateRepository : IProcessingStateRepository
             state.UpdatedAt = DateTime.UtcNow;
         }
 
-        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task CleanupOldStatesAsync(TimeSpan maxAge, CancellationToken ct = default)
     {
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var cutoff = DateTime.UtcNow - maxAge;
-        var oldStates = await _db.ProcessingStates
+        var oldStates = await db.ProcessingStates
             .Where(p => p.UpdatedAt < cutoff && 
                    (p.Status == ProcessingStatus.Completed || 
                     p.Status == ProcessingStatus.Failed || 
                     p.Status == ProcessingStatus.Cancelled))
             .ToListAsync(ct).ConfigureAwait(false);
 
-        _db.ProcessingStates.RemoveRange(oldStates);
-        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        db.ProcessingStates.RemoveRange(oldStates);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 }

@@ -63,7 +63,7 @@
 </style>
 
 <script>
-document.querySelector('[data-role="page"]').addEventListener('pageshow', function () {
+function initFeed() {
 (function () {
     'use strict';
 
@@ -296,6 +296,10 @@ document.querySelector('[data-role="page"]').addEventListener('pageshow', functi
 
     loadFeed(false);
 })();
-});
+}
+
+document.querySelector('[data-role="page"]').addEventListener('pageshow', initFeed);
+document.addEventListener('DOMContentLoaded', initFeed);
+if (document.readyState !== 'loading') initFeed();
 </script>
 </div>
