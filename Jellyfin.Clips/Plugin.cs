@@ -60,6 +60,11 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             {
                 Name = "interaction-bar.js",
                 EmbeddedResourcePath = $"{GetType().Namespace}.wwwroot.components.interaction-bar.js"
+            },
+            new PluginPageInfo
+            {
+                Name = "progress-bar.js",
+                EmbeddedResourcePath = $"{GetType().Namespace}.wwwroot.components.progress-bar.js"
             }
         ];
     }
