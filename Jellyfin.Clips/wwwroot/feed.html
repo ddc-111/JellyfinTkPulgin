@@ -83,18 +83,43 @@
     var modal = document.getElementById('video-modal');
     var modalVideo = document.getElementById('modal-video');
 
-    function apiRequest(url, options) {
-        var client = (typeof ApiClient !== 'undefined') ? ApiClient : null;
-        if (!client) {
-            return Promise.reject(new Error('ApiClient 不可用'));
+    function getToken() {
+        try {
+            var creds = JSON.parse(localStorage.getItem('jellyfin_credentials') || '{}');
+            if (creds && creds.Servers) {
+                var servers = creds.Servers;
+                if (servers.length) {
+                    return servers[servers.length - 1].AccessToken || '';
+                }
+            }
+        } catch (e) {}
+        if (typeof ApiClient !== 'undefined' && ApiClient) {
+            if (typeof ApiClient.accessToken === 'function') return ApiClient.accessToken();
+            if (typeof ApiClient.accessToken === 'string') return ApiClient.accessToken;
+            if (ApiClient._serverInfo && ApiClient._serverInfo.AccessToken) return ApiClient._serverInfo.AccessToken;
         }
+        return '';
+    }
+
+    function apiRequest(url, options) {
         var opts = options || {};
-        return client.ajax({
-            type: opts.method || 'GET',
-            url: client.getUrl(url),
-            data: opts.body || null,
-            contentType: opts.body ? 'application/json' : undefined,
-            dataType: 'json'
+        var token = getToken();
+        var headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'MediaBrowser Token="' + token + '"';
+
+        return fetch(url, {
+            method: opts.method || 'GET',
+            headers: headers,
+            body: opts.body || undefined
+        }).then(function (resp) {
+            if (!resp.ok) {
+                return resp.text().then(function (text) {
+                    var msg = 'HTTP ' + resp.status;
+                    try { var j = JSON.parse(text); if (j.message) msg = j.message; } catch (e) {}
+                    throw new Error(msg);
+                });
+            }
+            return resp.json();
         });
     }
 
@@ -120,7 +145,7 @@
             })
             .catch(function (err) {
                 console.error('Failed to load feed:', err);
-                loading.innerHTML = '<p style="color:#ff6b6b;">加载失败: ' + (err.message || err) + '</p>';
+                loading.innerHTML = '<p style="color:#ff6b6b;">加载失败: ' + (err.message || String(err)) + '</p>';
             })
             .finally(function () {
                 isLoading = false;
