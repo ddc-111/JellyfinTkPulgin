@@ -4,7 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Clips - 短视频推荐</title>
-    <link rel="stylesheet" href="feed.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}:root{--clips-bg:#000;--clips-text:#fff;--clips-accent:#fe2c55;--clips-overlay:rgba(0,0,0,0.4);--clips-card-bg:#1a1a1a;--clips-border:#333}body{background:var(--clips-bg);color:var(--clips-text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:hidden;height:100vh;width:100vw}#clips-feed-container{height:100vh;width:100%;display:flex;flex-direction:column}#clips-feed-header{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:linear-gradient(to bottom,rgba(0,0,0,0.8),transparent)}#clips-feed-header h1{font-size:20px;font-weight:700;letter-spacing:1px}#genre-filter{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:6px 12px;border-radius:20px;font-size:13px;outline:none;cursor:pointer}#genre-filter option{background:#1a1a1a;color:#fff}.clips-feed{height:100vh;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch}.clips-feed::-webkit-scrollbar{display:none}.clip-card{height:100vh;width:100%;scroll-snap-align:start;position:relative;display:flex;align-items:center;justify-content:center;background:#000;cursor:pointer}.clip-card-inner{width:100%;max-width:420px;height:100%;position:relative;overflow:hidden;border-radius:0}@media(min-width:768px){.clip-card-inner{border-radius:16px;height:90vh;margin:5vh auto}}.clip-thumbnail{width:100%;height:100%;object-fit:cover;display:block}.clip-overlay{position:absolute;bottom:0;left:0;right:0;padding:20px;background:linear-gradient(to top,rgba(0,0,0,0.9) 0%,transparent 100%);pointer-events:none}.clip-title{font-size:16px;font-weight:600;margin-bottom:6px;text-shadow:0 1px 3px rgba(0,0,0,0.8)}.clip-source{font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:8px}.clip-meta{display:flex;align-items:center;gap:12px;font-size:12px;color:rgba(255,255,255,0.6)}.clip-meta .genre-tag{background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:10px;font-size:11px}.clip-side-actions{position:absolute;right:12px;bottom:120px;display:flex;flex-direction:column;gap:20px;align-items:center;pointer-events:auto}.side-action-btn{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;color:#fff;cursor:pointer;transition:transform 0.2s}.side-action-btn:active{transform:scale(0.9)}.side-action-btn svg{width:28px;height:28px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8))}.side-action-btn.liked svg{fill:var(--clips-accent);stroke:var(--clips-accent)}.side-action-btn span{font-size:11px;text-shadow:0 1px 3px rgba(0,0,0,0.8)}.play-indicator{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);opacity:0;transition:opacity 0.3s;pointer-events:none}.play-indicator svg{width:60px;height:60px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6))}.clip-card.paused .play-indicator{opacity:1}.video-modal{position:fixed;inset:0;z-index:1000;background:#000;display:flex;align-items:center;justify-content:center}.video-modal-content{width:100%;max-width:420px;height:100vh;position:relative;display:flex;flex-direction:column}.modal-close{position:absolute;top:16px;right:16px;z-index:10;background:rgba(0,0,0,0.5);border:none;color:#fff;font-size:28px;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}#modal-video{width:100%;height:100%;object-fit:contain;background:#000}.video-info{position:absolute;bottom:80px;left:16px;right:60px;z-index:10}.video-info h3{font-size:15px;font-weight:600;margin-bottom:4px;text-shadow:0 1px 3px rgba(0,0,0,0.8)}.video-info p{font-size:12px;color:rgba(255,255,255,0.7)}.interaction-bar{position:absolute;right:12px;bottom:120px;display:flex;flex-direction:column;gap:24px;z-index:10}.interaction-btn{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;color:#fff;cursor:pointer;transition:transform 0.2s}.interaction-btn:active{transform:scale(0.85)}.interaction-btn svg{width:32px;height:32px}.interaction-btn span{font-size:12px}.progress-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,0.2);z-index:10}.progress-fill{height:100%;background:var(--clips-accent);width:0%;transition:width 0.1s linear}.loading-indicator{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px}.spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,0.2);border-top-color:var(--clips-accent);border-radius:50%;animation:spin 0.8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.clips-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;padding:20px}.empty-icon{font-size:64px;margin-bottom:16px}.clips-empty h2{font-size:20px;margin-bottom:8px}.clips-empty p{color:rgba(255,255,255,0.6);margin-bottom:24px;font-size:14px}.btn-generate{background:var(--clips-accent);color:#fff;border:none;padding:12px 32px;border-radius:24px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s}.btn-generate:hover{opacity:0.9}.like-animation{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:20}.like-animation svg{width:80px;height:80px;fill:var(--clips-accent);animation:likePopup 0.8s ease-out forwards}@keyframes likePopup{0%{transform:scale(0);opacity:1}50%{transform:scale(1.3);opacity:1}100%{transform:scale(1);opacity:0}}
+    </style>
 </head>
 <body>
     <div id="clips-feed-container">
@@ -66,6 +68,347 @@
         </div>
     </div>
 
-    <script src="feed.js"></script>
+    <script>
+    (function () {
+        'use strict';
+
+        const API_BASE = '/Plugins/Clips';
+        const PAGE_SIZE = 20;
+
+        let clips = [];
+        let currentIndex = 0;
+        let isLoading = false;
+        let hasMore = true;
+        let nextCursor = null;
+        let currentGenre = '';
+        let interactionStartTime = 0;
+        let viewedClipIds = new Set();
+
+        const feed = document.getElementById('clips-feed');
+        const loading = document.getElementById('loading-indicator');
+        const empty = document.getElementById('clips-empty');
+        const modal = document.getElementById('video-modal');
+        const modalVideo = document.getElementById('modal-video');
+        const genreFilter = document.getElementById('genre-filter');
+
+        async function getHeaders() {
+            const token = await getAuthToken();
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': 'MediaBrowser Token="' + token + '"'
+            };
+        }
+
+        function getAuthToken() {
+            return new Promise(function (resolve) {
+                if (typeof ApiClient !== 'undefined' && ApiClient.accessToken) {
+                    resolve(ApiClient.accessToken());
+                } else {
+                    var stored = localStorage.getItem('jellyfin_token') || '';
+                    resolve(stored);
+                }
+            });
+        }
+
+        async function loadFeed(append) {
+            if (isLoading) return;
+            isLoading = true;
+            loading.style.display = 'flex';
+
+            try {
+                var headers = await getHeaders();
+                var params = new URLSearchParams({ count: PAGE_SIZE });
+                if (append && nextCursor) params.set('cursor', nextCursor);
+                if (currentGenre) params.set('genre', currentGenre);
+
+                var resp = await fetch(API_BASE + '/Feed?' + params, { headers: headers });
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+                var data = await resp.json();
+                if (append) {
+                    clips = clips.concat(data.clips);
+                } else {
+                    clips = data.clips;
+                }
+                nextCursor = data.nextCursor;
+                hasMore = data.clips.length === PAGE_SIZE;
+
+                renderClips();
+            } catch (err) {
+                console.error('Failed to load feed:', err);
+            } finally {
+                isLoading = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        function renderClips() {
+            if (clips.length === 0) {
+                feed.style.display = 'none';
+                empty.style.display = 'flex';
+                return;
+            }
+
+            feed.style.display = 'block';
+            empty.style.display = 'none';
+
+            var existing = feed.querySelectorAll('.clip-card');
+            var existingIds = new Set(Array.from(existing).map(function (el) { return el.dataset.clipId; }));
+
+            clips.forEach(function (clip, index) {
+                if (existingIds.has(clip.id)) return;
+                var card = createClipCard(clip, index);
+                feed.appendChild(card);
+            });
+        }
+
+        function createClipCard(clip, index) {
+            var card = document.createElement('div');
+            card.className = 'clip-card';
+            card.dataset.clipId = clip.id;
+            card.dataset.index = index;
+
+            var duration = formatDuration(clip.durationSeconds);
+            var startTime = formatTime(clip.startTimeTicks / 10000000);
+
+            card.innerHTML =
+                '<div class="clip-card-inner">' +
+                    '<img class="clip-thumbnail" src="' + clip.thumbnailUrl + '" alt="' + clip.sourceItemName + '" loading="lazy">' +
+                    '<div class="clip-overlay">' +
+                        '<div class="clip-title">' + clip.sourceItemName + '</div>' +
+                        '<div class="clip-source">原片 · ' + startTime + '</div>' +
+                        '<div class="clip-meta">' +
+                            '<span class="genre-tag">' + (clip.genre || '未分类') + '</span>' +
+                            '<span>' + duration + '</span>' +
+                            '<span>' + clip.likeCount + ' 赞</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="clip-side-actions">' +
+                        '<button class="side-action-btn ' + (clip.hasLiked ? 'liked' : '') + '" data-action="like" data-clip-id="' + clip.id + '">' +
+                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                                '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>' +
+                            '</svg>' +
+                            '<span>' + clip.likeCount + '</span>' +
+                        '</button>' +
+                        '<button class="side-action-btn" data-action="original" data-clip-id="' + clip.id + '">' +
+                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                                '<polygon points="5 3 19 12 5 21 5 3"/>' +
+                            '</svg>' +
+                            '<span>原片</span>' +
+                        '</button>' +
+                    '</div>' +
+                    '<div class="play-indicator">' +
+                        '<svg viewBox="0 0 24 24" fill="white">' +
+                            '<polygon points="5 3 19 12 5 21 5 3"/>' +
+                        '</svg>' +
+                    '</div>' +
+                '</div>';
+
+            card.addEventListener('click', function (e) {
+                if (e.target.closest('.side-action-btn')) return;
+                openClipModal(clip);
+            });
+
+            card.querySelectorAll('.side-action-btn').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    handleSideAction(btn.dataset.action, btn.dataset.clipId);
+                });
+            });
+
+            return card;
+        }
+
+        function openClipModal(clip) {
+            modal.style.display = 'flex';
+            modalVideo.src = clip.streamUrl;
+            document.getElementById('video-title').textContent = clip.sourceItemName;
+            document.getElementById('video-source').textContent = '原片 · ' + formatTime(clip.startTimeTicks / 10000000);
+            document.getElementById('like-count').textContent = clip.likeCount;
+
+            var likeBtn = document.getElementById('btn-like');
+            if (clip.hasLiked) {
+                likeBtn.classList.add('liked');
+            } else {
+                likeBtn.classList.remove('liked');
+            }
+
+            interactionStartTime = Date.now();
+            viewedClipIds.add(clip.id);
+
+            document.getElementById('btn-original').onclick = function () {
+                reportInteraction(clip.id, 'clickThrough');
+                var url = '/web/index.html#!/details?id=' + clip.sourceItemId;
+                window.open(url, '_blank');
+            };
+
+            document.getElementById('btn-like').onclick = async function () {
+                var resp = await fetch(API_BASE + '/Like/' + clip.id, {
+                    method: 'POST',
+                    headers: await getHeaders()
+                });
+                var data = await resp.json();
+                if (data.liked) {
+                    likeBtn.classList.add('liked');
+                    clip.hasLiked = true;
+                    clip.likeCount++;
+                } else {
+                    likeBtn.classList.remove('liked');
+                    clip.hasLiked = false;
+                    clip.likeCount--;
+                }
+                document.getElementById('like-count').textContent = clip.likeCount;
+            };
+
+            modalVideo.ontimeupdate = function () {
+                if (modalVideo.duration) {
+                    var pct = (modalVideo.currentTime / modalVideo.duration) * 100;
+                    document.getElementById('progress-fill').style.width = pct + '%';
+                }
+            };
+        }
+
+        function closeClipModal() {
+            var clipId = modal.dataset.currentClipId;
+            if (clipId) {
+                var dwellTime = Date.now() - interactionStartTime;
+                var completionRate = modalVideo.duration
+                    ? modalVideo.currentTime / modalVideo.duration
+                    : 0;
+                reportInteraction(clipId, dwellTime < 3000 ? 'skip' : 'view', dwellTime, completionRate);
+            }
+            modal.style.display = 'none';
+            modalVideo.pause();
+            modalVideo.src = '';
+        }
+
+        async function handleSideAction(action, clipId) {
+            if (action === 'like') {
+                var headers = await getHeaders();
+                var resp = await fetch(API_BASE + '/Like/' + clipId, {
+                    method: 'POST',
+                    headers: headers
+                });
+                var data = await resp.json();
+                var btn = document.querySelector('[data-action="like"][data-clip-id="' + clipId + '"]');
+                if (data.liked) {
+                    btn.classList.add('liked');
+                } else {
+                    btn.classList.remove('liked');
+                }
+            } else if (action === 'original') {
+                var clip = clips.find(function (c) { return c.id === clipId; });
+                if (clip) {
+                    reportInteraction(clipId, 'clickThrough');
+                    window.open('/web/index.html#!/details?id=' + clip.sourceItemId, '_blank');
+                }
+            }
+        }
+
+        async function reportInteraction(clipId, type, dwellTimeMs, completionRate) {
+            try {
+                var headers = await getHeaders();
+                await fetch(API_BASE + '/Interaction', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        clipId: clipId,
+                        type: mapInteractionType(type),
+                        dwellTimeMs: dwellTimeMs || 0,
+                        completionRate: completionRate || 0
+                    })
+                });
+            } catch (err) {
+                console.error('Failed to report interaction:', err);
+            }
+        }
+
+        function mapInteractionType(type) {
+            var map = {
+                'view': 0, 'like': 1, 'dislike': 2, 'skip': 3,
+                'rewatch': 4, 'clickThrough': 5, 'share': 6
+            };
+            return map[type] ?? 0;
+        }
+
+        function formatDuration(seconds) {
+            var m = Math.floor(seconds / 60);
+            var s = seconds % 60;
+            return m + ':' + s.toString().padStart(2, '0');
+        }
+
+        function formatTime(seconds) {
+            var m = Math.floor(seconds / 60);
+            var s = Math.floor(seconds % 60);
+            return m + ':' + s.toString().padStart(2, '0');
+        }
+
+        var scrollTimeout;
+        feed.addEventListener('scroll', function () {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(function () {
+                var scrollTop = feed.scrollTop;
+                var cardHeight = feed.clientHeight;
+                var newIndex = Math.round(scrollTop / cardHeight);
+
+                if (newIndex !== currentIndex) {
+                    currentIndex = newIndex;
+                }
+
+                if (hasMore && scrollTop + cardHeight * 2 >= feed.scrollHeight) {
+                    loadFeed(true);
+                }
+            }, 100);
+        });
+
+        document.getElementById('modal-close').addEventListener('click', closeClipModal);
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) closeClipModal();
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && modal.style.display === 'flex') {
+                closeClipModal();
+            }
+        });
+
+        feed.addEventListener('dblclick', function (e) {
+            var card = e.target.closest('.clip-card');
+            if (!card) return;
+            var clipId = card.dataset.clipId;
+            handleSideAction('like', clipId);
+            showLikeAnimation(card);
+        });
+
+        function showLikeAnimation(container) {
+            var anim = document.createElement('div');
+            anim.className = 'like-animation';
+            anim.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+            container.appendChild(anim);
+            setTimeout(function () { anim.remove(); }, 1000);
+        }
+
+        document.getElementById('btn-manual-generate').addEventListener('click', async function () {
+            var btn = document.getElementById('btn-manual-generate');
+            btn.textContent = '生成中...';
+            btn.disabled = true;
+            try {
+                var headers = await getHeaders();
+                await fetch(API_BASE + '/Admin/Generate', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ forceRegenerate: false })
+                });
+                btn.textContent = '已触发生成';
+                setTimeout(function () { loadFeed(false); }, 3000);
+            } catch (err) {
+                btn.textContent = '生成失败，请重试';
+                btn.disabled = false;
+            }
+        });
+
+        loadFeed(false);
+    })();
+    </script>
 </body>
 </html>
