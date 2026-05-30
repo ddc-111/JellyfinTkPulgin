@@ -83,34 +83,43 @@
     var modal = document.getElementById('video-modal');
     var modalVideo = document.getElementById('modal-video');
 
-    function getToken() {
+    function apiRequest(path, options) {
+        var opts = options || {};
+        var method = opts.method || 'GET';
+        var body = opts.body || null;
+
+        if (typeof ApiClient === 'undefined') {
+            return Promise.reject(new Error('ApiClient 未加载，请刷新页面重试'));
+        }
+
+        var url = ApiClient.getUrl(path);
+
+        if (typeof ApiClient.ajax === 'function') {
+            return ApiClient.ajax({
+                type: method,
+                url: url,
+                data: body,
+                contentType: body ? 'application/json' : undefined,
+                dataType: 'json'
+            });
+        }
+
+        var token = '';
         try {
-            var creds = JSON.parse(localStorage.getItem('jellyfin_credentials') || '{}');
-            if (creds && creds.Servers) {
-                var servers = creds.Servers;
-                if (servers.length) {
-                    return servers[servers.length - 1].AccessToken || '';
-                }
+            if (typeof ApiClient.accessToken === 'function') {
+                token = ApiClient.accessToken();
+            } else if (ApiClient._serverInfo) {
+                token = ApiClient._serverInfo.AccessToken || '';
             }
         } catch (e) {}
-        if (typeof ApiClient !== 'undefined' && ApiClient) {
-            if (typeof ApiClient.accessToken === 'function') return ApiClient.accessToken();
-            if (typeof ApiClient.accessToken === 'string') return ApiClient.accessToken;
-            if (ApiClient._serverInfo && ApiClient._serverInfo.AccessToken) return ApiClient._serverInfo.AccessToken;
-        }
-        return '';
-    }
 
-    function apiRequest(url, options) {
-        var opts = options || {};
-        var token = getToken();
-        var headers = { 'Content-Type': 'application/json' };
+        var headers = {};
         if (token) headers['Authorization'] = 'MediaBrowser Token="' + token + '"';
 
         return fetch(url, {
-            method: opts.method || 'GET',
+            method: method,
             headers: headers,
-            body: opts.body || undefined
+            body: body || undefined
         }).then(function (resp) {
             if (!resp.ok) {
                 return resp.text().then(function (text) {
