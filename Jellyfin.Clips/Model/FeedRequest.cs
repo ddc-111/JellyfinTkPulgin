@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Jellyfin.Clips.Model;
 
 public class FeedRequest
@@ -10,7 +12,10 @@ public class FeedRequest
 
 public class FeedResponse
 {
+    [JsonPropertyName("clips")]
     public IReadOnlyList<ClipDto> Clips { get; set; } = Array.Empty<ClipDto>();
+    [JsonPropertyName("nextCursor")]
     public string? NextCursor { get; set; }
+    [JsonPropertyName("totalAvailable")]
     public int TotalAvailable { get; set; }
 }
