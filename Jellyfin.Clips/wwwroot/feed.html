@@ -85,20 +85,7 @@
 
     function apiRequest(path, options) {
         var opts = options || {};
-        var method = opts.method || 'GET';
-        var body = opts.body || null;
-        var url = (typeof ApiClient !== 'undefined' && typeof ApiClient.getUrl === 'function')
-            ? ApiClient.getUrl(path)
-            : window.location.origin + path;
-
-        if (method === 'GET' && typeof ApiClient !== 'undefined' && typeof ApiClient.getJSON === 'function') {
-            return ApiClient.getJSON(url);
-        }
-
-        if (typeof ApiClient !== 'undefined' && typeof ApiClient.fetch === 'function') {
-            return ApiClient.fetch({ url: url, type: method, data: body, dataType: 'json', contentType: body ? 'application/json' : undefined });
-        }
-
+        var url = window.location.origin + path;
         var token = '';
         if (typeof ApiClient !== 'undefined' && ApiClient) {
             if (typeof ApiClient.accessToken === 'function') { try { token = ApiClient.accessToken() || ''; } catch (e) {} }
@@ -110,14 +97,15 @@
                 if (raw) { var c = JSON.parse(raw); if (c.Servers && c.Servers.length) token = c.Servers[c.Servers.length - 1].AccessToken || ''; }
             } catch (e) {}
         }
-
-        var headers = {};
-        if (token) headers['Authorization'] = 'MediaBrowser Token="' + token + '"';
+        if (!token) return Promise.reject(new Error('未找到认证令牌，请重新登录'));
 
         return fetch(url, {
-            method: method,
-            headers: headers,
-            body: body || undefined
+            method: opts.method || 'GET',
+            headers: {
+                'Authorization': 'MediaBrowser ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: opts.body || undefined
         }).then(function (resp) {
             if (!resp.ok) {
                 return resp.text().then(function (text) {
