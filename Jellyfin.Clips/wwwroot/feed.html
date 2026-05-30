@@ -83,78 +83,35 @@
     var modal = document.getElementById('video-modal');
     var modalVideo = document.getElementById('modal-video');
 
-    var diag = [];
-    function diagInfo(msg) { diag.push(msg); }
+    function getToken() {
+        if (typeof ApiClient !== 'undefined' && ApiClient) {
+            if (ApiClient._serverInfo && ApiClient._serverInfo.AccessToken) return ApiClient._serverInfo.AccessToken;
+            if (typeof ApiClient.accessToken === 'function') { try { return ApiClient.accessToken() || ''; } catch (e) {} }
+        }
+        try {
+            var raw = localStorage.getItem('jellyfin_credentials');
+            if (raw) {
+                var c = JSON.parse(raw);
+                if (c.Servers && c.Servers.length) return c.Servers[c.Servers.length - 1].AccessToken || '';
+            }
+        } catch (e) {}
+        return '';
+    }
 
     function apiRequest(path, options) {
         var opts = options || {};
-        var method = opts.method || 'GET';
-        var body = opts.body || null;
-
-        diagInfo('ApiClient exists: ' + (typeof ApiClient !== 'undefined'));
-        if (typeof ApiClient !== 'undefined') {
-            diagInfo('ApiClient keys: ' + Object.keys(ApiClient).filter(function(k){ return typeof ApiClient[k] === 'function'; }).join(', '));
-            diagInfo('ApiClient.getUrl: ' + (typeof ApiClient.getUrl));
-            diagInfo('ApiClient.ajax: ' + (typeof ApiClient.ajax));
-            diagInfo('ApiClient.getJSON: ' + (typeof ApiClient.getJSON));
-            diagInfo('ApiClient.fetch: ' + (typeof ApiClient.fetch));
-            diagInfo('ApiClient.accessToken: ' + (typeof ApiClient.accessToken));
-            if (typeof ApiClient.getUrl === 'function') diagInfo('resolved url: ' + ApiClient.getUrl(path));
-            if (typeof ApiClient.serverAddress === 'function') diagInfo('serverAddress: ' + ApiClient.serverAddress());
-            if (typeof ApiClient.accessToken === 'function') diagInfo('hasToken: ' + !!ApiClient.accessToken());
-            if (ApiClient._serverInfo) diagInfo('_serverInfo.AccessToken: ' + !!ApiClient._serverInfo.AccessToken);
-        }
-
-        if (typeof ApiClient !== 'undefined' && typeof ApiClient.getJSON === 'function' && method === 'GET') {
-            return ApiClient.getJSON(ApiClient.getUrl(path));
-        }
-
-        if (typeof ApiClient !== 'undefined' && typeof ApiClient.fetch === 'function') {
-            return ApiClient.fetch(path, { method: method, body: body })
-                .then(function (resp) {
-                    if (!resp.ok) {
-                        return resp.text().then(function (t) { throw new Error('HTTP ' + resp.status + ': ' + t); });
-                    }
-                    return resp.json();
-                });
-        }
-
-        var token = '';
-        try {
-            if (typeof ApiClient !== 'undefined') {
-                if (typeof ApiClient.accessToken === 'function') token = ApiClient.accessToken();
-                else if (ApiClient._serverInfo) token = ApiClient._serverInfo.AccessToken || '';
-            }
-            if (!token) {
-                var creds = localStorage.getItem('jellyfin_credentials');
-                if (creds) {
-                    var parsed = JSON.parse(creds);
-                    if (parsed.Servers && parsed.Servers.length) {
-                        token = parsed.Servers[parsed.Servers.length - 1].AccessToken || '';
-                    }
-                }
-            }
-        } catch (e) { diagInfo('token error: ' + e.message); }
-
-        diagInfo('final token present: ' + !!token);
+        var url = window.location.origin + path;
+        var token = getToken();
         var headers = {};
         if (token) headers['Authorization'] = 'MediaBrowser Token="' + token + '"';
 
-        var url = (typeof ApiClient !== 'undefined' && typeof ApiClient.getUrl === 'function')
-            ? ApiClient.getUrl(path)
-            : path;
-
-        diagInfo('fetch url: ' + url);
-
         return fetch(url, {
-            method: method,
+            method: opts.method || 'GET',
             headers: headers,
-            body: body || undefined
+            body: opts.body || undefined
         }).then(function (resp) {
-            diagInfo('fetch status: ' + resp.status);
             if (!resp.ok) {
                 return resp.text().then(function (text) {
-                    diagInfo('fetch error body: ' + text.substring(0, 200));
                     var msg = 'HTTP ' + resp.status;
                     try { var j = JSON.parse(text); if (j.message) msg = j.message; } catch (e) {}
                     throw new Error(msg);
@@ -186,10 +143,7 @@
             })
             .catch(function (err) {
                 console.error('Failed to load feed:', err);
-                var msg = err.message || String(err);
-                loading.innerHTML = '<p style="color:#ff6b6b;">加载失败: ' + msg + '</p>'
-                    + '<pre style="color:#aaa;font-size:11px;white-space:pre-wrap;max-height:300px;overflow:auto;">'
-                    + diag.join('\n') + '</pre>';
+                loading.innerHTML = '<p style="color:#ff6b6b;">加载失败: ' + (err.message || String(err)) + '</p>';
             })
             .finally(function () {
                 isLoading = false;
