@@ -1,5 +1,6 @@
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Plugins;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Jellyfin.Clips.Services;
 using Jellyfin.Clips.Data.Repositories;
@@ -14,7 +15,12 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         IServiceCollection serviceCollection,
         IServerApplicationHost applicationHost)
     {
-        serviceCollection.AddDbContext<ClipsDbContext>();
+        serviceCollection.AddSingleton<ClipsDbContext>(sp =>
+        {
+            var ctx = new ClipsDbContext();
+            ctx.Database.EnsureCreated();
+            return ctx;
+        });
 
         serviceCollection.AddSingleton<IClipRepository, ClipRepository>();
         serviceCollection.AddSingleton<IInteractionRepository, InteractionRepository>();
