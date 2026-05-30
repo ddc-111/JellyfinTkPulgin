@@ -53,6 +53,13 @@
 4. **Restart Jellyfin server**
 5. Configure at **Dashboard** → **Plugins** → **Clips**
 
+### Plugin Pages
+
+| Page | URL |
+|------|-----|
+| Configuration | `http://{your-jellyfin-server}/web/index.html?#/configurationpage?name=Clips` |
+| Feed (TikTok-style) | `http://{your-jellyfin-server}/web/#/plugin-pages/ClipsFeed` |
+
 ### Option 2: Manual Installation
 
 1. Download the latest `Jellyfin.Clips_x.x.x.zip` from [Releases](https://github.com/ddc-111/JellyfinTkPulgin/releases)

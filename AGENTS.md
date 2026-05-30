@@ -89,9 +89,9 @@ All three Jellyfin packages must have `<ExcludeAssets>runtime</ExcludeAssets>` �
 - **Entry point**: `Plugin.cs` — singleton, implements `BasePlugin<PluginConfiguration>` + `IHasWebPages`
 - **DI registration**: `PluginServiceRegistrator.cs` — implements `IPluginServiceRegistrator`, auto-discovered by Jellyfin
 - **API controllers**: `Api/` — standard ASP.NET Core `ControllerBase`, auto-discovered. Routes are under `/Plugins/Clips/`
-- **Config page**: `Configuration/configPage.html` — embedded resource, uses Jellyfin's `emby-*` web components + `ApiClient.getPluginConfiguration()`
-- **Frontend**: `wwwroot/` — embedded resources, vanilla JS + CSS, TikTok-style vertical scroll feed
-- **Database**: SQLite via EF Core, stored at `{AppData}/jellyfin/plugins/clips/clips.db`
+- **Config page**: `Configuration/configPage.html` — embedded resource, page name `Clips`, URL: `#/configurationpage?name=Clips`
+- **Feed page**: `wwwroot/feed.html` — embedded resource, page name `ClipsFeed`, URL: `#/plugin-pages/ClipsFeed`
+- **Database**: SQLite via EF Core, stored at `{AppData}/jellyfin/plugins/clips/clips.db`, uses `IDbContextFactory<ClipsDbContext>`
 - **Background service**: `IdleClipGenerator` — registered as `IHostedService`, monitors `ISessionManager` for idle state
 - **Scheduled task**: `ClipGenerationTask` — implements `IScheduledTask`, visible in Jellyfin dashboard
 - **Multimodal AI**: `MultimodalAnalysisService` — Xiaomi LLM integration for video frame analysis

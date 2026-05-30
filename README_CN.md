@@ -53,6 +53,13 @@
 4. **重启 Jellyfin 服务器**
 5. 进入 **仪表盘** → **插件** → **Clips** 进行配置
 
+### 插件页面地址
+
+| 页面 | URL |
+|------|-----|
+| 配置页面 | `http://{你的Jellyfin服务器地址}/web/index.html?#/configurationpage?name=Clips` |
+| 信息流（抖音风格） | `http://{你的Jellyfin服务器地址}/web/#/plugin-pages/ClipsFeed` |
+
 ### 方式二：手动安装
 
 1. 从 [Releases](https://github.com/ddc-111/JellyfinTkPulgin/releases) 页面下载最新版本的 `Jellyfin.Clips_x.x.x.zip`
