@@ -36,14 +36,54 @@ gh run view <run-id> --log-failed
 
 ## Release
 
+Full workflow — bump version, commit, push, tag, deploy:
+
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+# 1. Bump version in csproj (Version, AssemblyVersion, FileVersion)
+#    e.g. 1.3.4.0 → 1.3.5.0
+
+# 2. Commit all changes
+git add -A
+git commit -m "type: description"
+
+# 3. Pull rebase (remote often has manifest.json updates from CI)
+git pull --rebase origin main
+
+# 4. Push main
+git push origin main
+
+# 5. Tag and push tag (triggers CI build + release)
+git tag v1.3.5
+git push origin v1.3.5
+```
+
+**If tag already exists (re-push after fix):**
+```bash
+git tag -d v1.3.5
+git push origin :refs/tags/v1.3.5
+git tag v1.3.5
+git push origin v1.3.5
+```
+
+**If CI build fails, fix and re-tag:**
+```bash
+# Fix the code
+git add -A
+git commit -m "fix: description"
+git pull --rebase origin main
+git push origin main
+# Delete old tag, re-create, push
+git tag -d v1.3.5
+git push origin :refs/tags/v1.3.5
+git tag v1.3.5
+git push origin v1.3.5
 ```
 
 CI packages `Jellyfin.Clips.dll` + `Jellyfin.Clips.deps.json` into a zip, creates a GitHub Release, then auto-commits an updated `manifest.json` with the download URL and SHA256.
 
 **Important:** The release workflow checks out `main` branch (not detached HEAD) to allow pushing manifest.json updates. This is configured in `.github/workflows/build-and-release.yml`.
+
+**Deploy:** After CI completes, the user installs the new release from the Jellyfin plugin repository (or manually copies the DLL).
 
 ## Plugin Repository Installation
 

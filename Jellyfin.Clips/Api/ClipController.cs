@@ -1,45 +1,73 @@
 using System.Net.Mime;
-using MediaBrowser.Common.Api;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Jellyfin.Clips.Data;
+using Jellyfin.Clips.Data.Entities;
 using Jellyfin.Clips.Data.Repositories;
 using Jellyfin.Clips.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace Jellyfin.Clips.Api;
 
 [ApiController]
-[Authorize]
 [Route("Plugins/Clips/Clip")]
 [Produces(MediaTypeNames.Application.Json)]
 public class ClipController : ControllerBase
 {
     private readonly IClipRepository _clipRepository;
     private readonly IFeedService _feedService;
-    private readonly ILogger<ClipController> _logger;
+    private readonly IDbContextFactory<ClipsDbContext> _dbFactory;
 
     public ClipController(
         IClipRepository clipRepository,
         IFeedService feedService,
-        ILogger<ClipController> logger)
+        IDbContextFactory<ClipsDbContext> dbFactory)
     {
         _clipRepository = clipRepository;
         _feedService = feedService;
-        _logger = logger;
+        _dbFactory = dbFactory;
     }
 
+    [AllowAnonymous]
+    [HttpDelete("{clipId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteClip(string clipId, CancellationToken ct = default)
+    {
+        var clip = await _clipRepository.GetByIdAsync(clipId, ct).ConfigureAwait(false);
+        if (clip is null) return NotFound();
+
+        var sourceItemId = clip.SourceItemId;
+
+        try { if (System.IO.File.Exists(clip.FilePath)) System.IO.File.Delete(clip.FilePath); } catch { }
+        try { if (clip.ThumbnailPath != null && System.IO.File.Exists(clip.ThumbnailPath)) System.IO.File.Delete(clip.ThumbnailPath); } catch { }
+
+        await _clipRepository.DeleteAsync(clipId, ct).ConfigureAwait(false);
+
+        var remaining = await _clipRepository.GetBySourceItemIdAsync(sourceItemId, ct).ConfigureAwait(false);
+        if (remaining.Count == 0)
+        {
+            using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+            var exists = await db.DeletedSourceItems.AnyAsync(d => d.SourceItemId == sourceItemId, ct).ConfigureAwait(false);
+            if (!exists)
+            {
+                db.DeletedSourceItems.Add(new DeletedSourceItem { SourceItemId = sourceItemId });
+                await db.SaveChangesAsync(ct).ConfigureAwait(false);
+            }
+        }
+
+        return Ok();
+    }
+
+    [AllowAnonymous]
     [HttpGet("{clipId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetClipDetail(string clipId, CancellationToken ct = default)
     {
-        var userId = GetCurrentUserId();
-        if (userId is null) return Unauthorized();
-
-        var detail = await _feedService.GetClipDetailAsync(clipId, userId, ct).ConfigureAwait(false);
+        var detail = await _feedService.GetClipDetailAsync(clipId, "anonymous", ct).ConfigureAwait(false);
         if (detail is null) return NotFound();
-
         return Ok(detail);
     }
 
@@ -73,11 +101,5 @@ public class ClipController : ControllerBase
 
         var bytes = await System.IO.File.ReadAllBytesAsync(clip.ThumbnailPath, ct).ConfigureAwait(false);
         return File(bytes, "image/jpeg");
-    }
-
-    private string? GetCurrentUserId()
-    {
-        var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-        return claim?.Value;
     }
 }

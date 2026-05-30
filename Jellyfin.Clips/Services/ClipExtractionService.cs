@@ -1,6 +1,8 @@
 using MediaBrowser.Controller.Library;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Jellyfin.Clips.Configuration;
+using Jellyfin.Clips.Data;
 using Jellyfin.Clips.Data.Entities;
 using Jellyfin.Clips.Data.Repositories;
 
@@ -22,6 +24,7 @@ public class ClipExtractionService : IClipExtractionService
     private readonly IMultimodalAnalysisService? _multimodalAnalysis;
     private readonly IClipRepository _clipRepository;
     private readonly IProcessingStateRepository _processingStateRepository;
+    private readonly IDbContextFactory<ClipsDbContext> _dbFactory;
     private readonly ILogger<ClipExtractionService> _logger;
     private readonly PluginConfiguration _config;
 
@@ -31,6 +34,7 @@ public class ClipExtractionService : IClipExtractionService
         IHighlightDetectionService highlightDetection,
         IClipRepository clipRepository,
         IProcessingStateRepository processingStateRepository,
+        IDbContextFactory<ClipsDbContext> dbFactory,
         ILogger<ClipExtractionService> logger,
         IMultimodalAnalysisService? multimodalAnalysis = null)
     {
@@ -39,6 +43,7 @@ public class ClipExtractionService : IClipExtractionService
         _highlightDetection = highlightDetection;
         _clipRepository = clipRepository;
         _processingStateRepository = processingStateRepository;
+        _dbFactory = dbFactory;
         _logger = logger;
         _config = Plugin.Instance?.Configuration ?? new PluginConfiguration();
         _multimodalAnalysis = multimodalAnalysis;
@@ -46,6 +51,14 @@ public class ClipExtractionService : IClipExtractionService
 
     public async Task<int> ExtractClipsFromItemAsync(string sourceItemId, bool forceRegenerate, CancellationToken ct = default)
     {
+        using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var isDeleted = await db.DeletedSourceItems.AnyAsync(d => d.SourceItemId == sourceItemId, ct).ConfigureAwait(false);
+        if (isDeleted)
+        {
+            _logger.LogInformation("Item {Id} was previously deleted by user, skipping", sourceItemId);
+            return 0;
+        }
+
         var item = _libraryManager.GetItemById(new Guid(sourceItemId));
         if (item is null)
         {

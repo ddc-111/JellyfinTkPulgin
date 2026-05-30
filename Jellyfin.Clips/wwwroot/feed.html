@@ -33,23 +33,17 @@
             <p id="video-source"></p>
         </div>
         <div class="interaction-bar">
-            <button class="interaction-btn" id="btn-like" title="喜欢">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                </svg>
-                <span id="like-count">0</span>
-            </button>
             <button class="interaction-btn" id="btn-original" title="看原片">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="5 3 19 12 5 21 5 3"/>
                 </svg>
                 <span>原片</span>
             </button>
-            <button class="interaction-btn" id="btn-share" title="分享">
+            <button class="interaction-btn" id="btn-delete" title="删除片段">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
                 </svg>
+                <span>删除</span>
             </button>
         </div>
         <div class="video-progress-container" id="video-progress-container">
@@ -199,14 +193,9 @@
                     '<div class="clip-meta">' +
                         '<span class="genre-tag">' + (clip.genre || '未分类') + '</span>' +
                         '<span>' + duration + '</span>' +
-                        '<span>' + clip.likeCount + ' 赞</span>' +
                     '</div>' +
                 '</div>' +
                 '<div class="clip-side-actions">' +
-                    '<button class="side-action-btn ' + (clip.hasLiked ? 'liked' : '') + '" data-action="like" data-clip-id="' + clip.id + '">' +
-                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
-                        '<span>' + clip.likeCount + '</span>' +
-                    '</button>' +
                     '<button class="side-action-btn" data-action="original" data-clip-id="' + clip.id + '">' +
                         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>' +
                         '<span>原片</span>' +
@@ -235,10 +224,6 @@
         modalVideo.src = clip.streamUrl;
         document.getElementById('video-title').textContent = clip.sourceItemName;
         document.getElementById('video-source').textContent = '原片 · ' + formatTime(clip.startTimeTicks / 10000000);
-        document.getElementById('like-count').textContent = clip.likeCount;
-
-        var likeBtn = document.getElementById('btn-like');
-        if (clip.hasLiked) { likeBtn.classList.add('liked'); } else { likeBtn.classList.remove('liked'); }
 
         interactionStartTime = Date.now();
 
@@ -247,12 +232,21 @@
             window.open('/web/index.html#!/details?id=' + clip.sourceItemId, '_blank');
         };
 
-        document.getElementById('btn-like').onclick = function () {
-            apiRequest(API_BASE + '/Like/' + clip.id, { method: 'POST' })
-                .then(function (data) {
-                    if (data.liked) { likeBtn.classList.add('liked'); clip.hasLiked = true; clip.likeCount++; }
-                    else { likeBtn.classList.remove('liked'); clip.hasLiked = false; clip.likeCount--; }
-                    document.getElementById('like-count').textContent = clip.likeCount;
+        document.getElementById('btn-delete').onclick = function () {
+            if (!confirm('确定删除这个片段？')) return;
+            apiRequest(API_BASE + '/Clip/' + clip.id, { method: 'DELETE' })
+                .then(function () {
+                    closeClipModal();
+                    var card = feed.querySelector('[data-clip-id="' + clip.id + '"]');
+                    if (card) card.remove();
+                    clips = clips.filter(function (c) { return c.id !== clip.id; });
+                    if (clips.length === 0) {
+                        feed.style.display = 'none';
+                        empty.style.display = 'flex';
+                    }
+                })
+                .catch(function (err) {
+                    alert('删除失败: ' + (err.message || err));
                 });
         };
 

@@ -18,6 +18,7 @@ public class ClipsDbContext : DbContext
     public DbSet<UserInteraction> UserInteractions => Set<UserInteraction>();
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<ProcessingState> ProcessingStates => Set<ProcessingState>();
+    public DbSet<DeletedSourceItem> DeletedSourceItems => Set<DeletedSourceItem>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -69,6 +70,12 @@ public class ClipsDbContext : DbContext
             entity.HasIndex(e => e.SourceItemId);
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => new { e.Status, e.UpdatedAt });
+        });
+
+        modelBuilder.Entity<DeletedSourceItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.SourceItemId).IsUnique();
         });
     }
 }
