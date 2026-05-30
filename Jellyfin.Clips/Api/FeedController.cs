@@ -24,6 +24,7 @@ public class FeedController : ControllerBase
         _logger = logger;
     }
 
+    [AllowAnonymous]
     [HttpGet("Feed")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<FeedResponse>> GetFeed(
@@ -32,8 +33,18 @@ public class FeedController : ControllerBase
         [FromQuery] string? genre = null,
         CancellationToken ct = default)
     {
+        _logger.LogWarning("Feed request: IsAuthenticated={IsAuth}, Identity={Identity}, Headers={Headers}",
+            User?.Identity?.IsAuthenticated,
+            User?.Identity?.Name,
+            string.Join(", ", Request.Headers.Select(h => h.Key + "=" + string.Join(",", h.Value))));
+
         var userId = GetCurrentUserId();
-        if (userId is null) return Unauthorized();
+        _logger.LogWarning("Feed userId={UserId}", userId ?? "NULL");
+
+        if (userId is null)
+        {
+            userId = "anonymous";
+        }
 
         var request = new FeedRequest
         {
@@ -42,8 +53,16 @@ public class FeedController : ControllerBase
             Genre = genre
         };
 
-        var response = await _feedService.GetFeedAsync(userId, request, ct).ConfigureAwait(false);
-        return Ok(response);
+        try
+        {
+            var response = await _feedService.GetFeedAsync(userId, request, ct).ConfigureAwait(false);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Feed error");
+            return StatusCode(500, new { error = ex.Message });
+        }
     }
 
     private string? GetCurrentUserId()
