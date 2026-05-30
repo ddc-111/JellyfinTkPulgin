@@ -37,9 +37,8 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             },
             new PluginPageInfo
             {
-                Name = "ClipsFeed",
-                EmbeddedResourcePath = $"{GetType().Namespace}.wwwroot.feed.html",
-                EnableInMainMenu = true
+                Name = "feed",
+                EmbeddedResourcePath = $"{GetType().Namespace}.wwwroot.feed.html"
             }
         ];
     }
