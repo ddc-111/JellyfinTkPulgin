@@ -58,7 +58,7 @@
 | Page | URL |
 |------|-----|
 | Configuration | `http://{your-jellyfin-server}/web/index.html?#/configurationpage?name=Clips` |
-| Feed (TikTok-style) | `http://{your-jellyfin-server}/web/#/plugin-pages/feed` |
+| Feed (TikTok-style) | `http://{your-jellyfin-server}/web/index.html?#/configurationpage?name=feed` |
 
 ### Option 2: Manual Installation
 

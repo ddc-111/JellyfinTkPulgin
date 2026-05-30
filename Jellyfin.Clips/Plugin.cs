@@ -38,8 +38,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             new PluginPageInfo
             {
                 Name = "feed",
-                EmbeddedResourcePath = $"{GetType().Namespace}.wwwroot.feed.html",
-                EnableInMainMenu = true
+                EmbeddedResourcePath = $"{GetType().Namespace}.wwwroot.feed.html"
             }
         ];
     }

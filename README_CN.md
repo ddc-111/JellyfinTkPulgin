@@ -58,7 +58,7 @@
 | 页面 | URL |
 |------|-----|
 | 配置页面 | `http://{你的Jellyfin服务器地址}/web/index.html?#/configurationpage?name=Clips` |
-| 信息流（抖音风格） | `http://{你的Jellyfin服务器地址}/web/#/plugin-pages/feed` |
+| 信息流（抖音风格） | `http://{你的Jellyfin服务器地址}/web/index.html?#/configurationpage?name=feed` |
 
 ### 方式二：手动安装
 
