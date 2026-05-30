@@ -43,6 +43,7 @@ public class ClipController : ControllerBase
         return Ok(detail);
     }
 
+    [AllowAnonymous]
     [HttpGet("{clipId}/stream")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -58,6 +59,7 @@ public class ClipController : ControllerBase
         return File(stream, "video/mp4", enableRangeProcessing: true);
     }
 
+    [AllowAnonymous]
     [HttpGet("{clipId}/thumbnail")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
