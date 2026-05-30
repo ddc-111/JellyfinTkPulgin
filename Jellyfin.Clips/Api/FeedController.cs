@@ -36,7 +36,7 @@ public class FeedController : ControllerBase
         _logger.LogWarning("Feed request: IsAuthenticated={IsAuth}, Identity={Identity}, Headers={Headers}",
             User?.Identity?.IsAuthenticated,
             User?.Identity?.Name,
-            string.Join(", ", Request.Headers.Select(h => h.Key + "=" + string.Join(",", h.Value))));
+            string.Join(", ", Request.Headers.Select(h => h.Key + "=" + string.Join(",", h.Value.ToArray()))));
 
         var userId = GetCurrentUserId();
         _logger.LogWarning("Feed userId={UserId}", userId ?? "NULL");
