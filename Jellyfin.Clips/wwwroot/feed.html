@@ -85,7 +85,6 @@
 
     function apiRequest(path, options) {
         var opts = options || {};
-        var url = window.location.origin + path;
         var token = '';
         if (typeof ApiClient !== 'undefined' && ApiClient) {
             if (typeof ApiClient.accessToken === 'function') { try { token = ApiClient.accessToken() || ''; } catch (e) {} }
@@ -99,12 +98,12 @@
         }
         if (!token) return Promise.reject(new Error('未找到认证令牌，请重新登录'));
 
+        var sep = path.indexOf('?') >= 0 ? '&' : '?';
+        var url = window.location.origin + path + sep + 'api_key=' + encodeURIComponent(token);
+
         return fetch(url, {
             method: opts.method || 'GET',
-            headers: {
-                'Authorization': 'MediaBrowser ' + token,
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: opts.body || undefined
         }).then(function (resp) {
             if (!resp.ok) {
