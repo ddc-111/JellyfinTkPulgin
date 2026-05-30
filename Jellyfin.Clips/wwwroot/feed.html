@@ -63,7 +63,6 @@
 </style>
 
 <script>
-function initFeed() {
 (function () {
     'use strict';
 
@@ -115,10 +114,11 @@ function initFeed() {
             })
             .catch(function (err) {
                 console.error('Failed to load feed:', err);
+                loading.innerHTML = '<p style="color:#ff6b6b;">加载失败: ' + err.message + '</p>';
             })
             .finally(function () {
                 isLoading = false;
-                loading.style.display = 'none';
+                if (clips.length > 0) loading.style.display = 'none';
             });
     }
 
@@ -296,10 +296,5 @@ function initFeed() {
 
     loadFeed(false);
 })();
-}
-
-document.querySelector('[data-role="page"]').addEventListener('pageshow', initFeed);
-document.addEventListener('DOMContentLoaded', initFeed);
-if (document.readyState !== 'loading') initFeed();
 </script>
 </div>
