@@ -134,6 +134,11 @@
             return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
         }).join('&');
 
+        var token = getToken();
+        var debugInfo = 'ApiClient=' + (typeof ApiClient)
+            + ' | token=' + (token ? token.substring(0, 8) + '...' : 'EMPTY')
+            + ' | origin=' + window.location.origin;
+
         apiRequest(API_BASE + '/Feed?' + qs)
             .then(function (data) {
                 clips = append ? clips.concat(data.clips) : data.clips;
@@ -143,7 +148,8 @@
             })
             .catch(function (err) {
                 console.error('Failed to load feed:', err);
-                loading.innerHTML = '<p style="color:#ff6b6b;">加载失败: ' + (err.message || String(err)) + '</p>';
+                loading.innerHTML = '<p style="color:#ff6b6b;">加载失败: ' + (err.message || String(err)) + '</p>'
+                    + '<p style="color:#888;font-size:11px;margin-top:8px;">' + debugInfo + '</p>';
             })
             .finally(function () {
                 isLoading = false;
