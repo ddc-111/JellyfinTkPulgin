@@ -43,3 +43,13 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddHostedService<IdleClipGenerator>();
     }
 }
+
+public static class DatabaseInitializer
+{
+    public static async Task InitializeDatabaseAsync(IServiceProvider serviceProvider)
+    {
+        var factory = serviceProvider.GetRequiredService<IDbContextFactory<ClipsDbContext>>();
+        using var context = await factory.CreateDbContextAsync();
+        await context.Database.EnsureCreatedAsync();
+    }
+}

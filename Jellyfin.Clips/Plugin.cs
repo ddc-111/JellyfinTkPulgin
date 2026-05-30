@@ -3,7 +3,10 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Jellyfin.Clips.Configuration;
+using Jellyfin.Clips.Data;
 
 namespace Jellyfin.Clips;
 
@@ -13,6 +16,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         : base(applicationPaths, xmlSerializer)
     {
         Instance = this;
+        InitializeDatabase().GetAwaiter().GetResult();
     }
 
     public override string Name => "Clips";
@@ -29,7 +33,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         [
             new PluginPageInfo
             {
-                Name = Name,
+                Name = "Clips",
                 EmbeddedResourcePath = string.Format(
                     CultureInfo.InvariantCulture,
                     "{0}.Configuration.configPage.html",
@@ -37,35 +41,29 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             },
             new PluginPageInfo
             {
-                Name = "feed",
+                Name = "ClipsFeed",
                 EmbeddedResourcePath = $"{GetType().Namespace}.wwwroot.feed.html",
                 EnableInMainMenu = true
-            },
-            new PluginPageInfo
-            {
-                Name = "feed.js",
-                EmbeddedResourcePath = $"{GetType().Namespace}.wwwroot.feed.js"
-            },
-            new PluginPageInfo
-            {
-                Name = "feed.css",
-                EmbeddedResourcePath = $"{GetType().Namespace}.wwwroot.feed.css"
-            },
-            new PluginPageInfo
-            {
-                Name = "video-card.js",
-                EmbeddedResourcePath = $"{GetType().Namespace}.wwwroot.components.video-card.js"
-            },
-            new PluginPageInfo
-            {
-                Name = "interaction-bar.js",
-                EmbeddedResourcePath = $"{GetType().Namespace}.wwwroot.components.interaction-bar.js"
-            },
-            new PluginPageInfo
-            {
-                Name = "progress-bar.js",
-                EmbeddedResourcePath = $"{GetType().Namespace}.wwwroot.components.progress-bar.js"
             }
         ];
+    }
+
+    private static async Task InitializeDatabase()
+    {
+        var dbPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "jellyfin", "plugins", "clips", "clips.db");
+        var dir = Path.GetDirectoryName(dbPath);
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
+
+        var options = new DbContextOptionsBuilder<ClipsDbContext>()
+            .UseSqlite($"Data Source={dbPath}")
+            .Options;
+
+        using var context = new ClipsDbContext(options);
+        await context.Database.EnsureCreatedAsync();
     }
 }

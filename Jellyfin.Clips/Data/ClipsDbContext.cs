@@ -5,6 +5,15 @@ namespace Jellyfin.Clips.Data;
 
 public class ClipsDbContext : DbContext
 {
+    public ClipsDbContext()
+    {
+    }
+
+    public ClipsDbContext(DbContextOptions<ClipsDbContext> options)
+        : base(options)
+    {
+    }
+
     public DbSet<Clip> Clips => Set<Clip>();
     public DbSet<UserInteraction> UserInteractions => Set<UserInteraction>();
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
