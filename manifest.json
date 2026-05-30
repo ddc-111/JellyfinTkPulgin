@@ -13,8 +13,8 @@
         "changelog": "Release 1.2.0",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/ddc-111/JellyfinTkPulgin/releases/download/v1.2.0/Jellyfin.Clips_1.2.0.zip",
-        "checksum": "3948dafd6515caf8c7e699e51e24da28",
-        "timestamp": "2026-05-30T11:31:11Z"
+        "checksum": "04024b8aedb206b7af19d9f3d46692a8",
+        "timestamp": "2026-05-30T11:42:46Z"
       },
       {
         "version": "1.1.9.0",
