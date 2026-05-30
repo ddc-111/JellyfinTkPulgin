@@ -102,7 +102,15 @@ public class FfmpegWrapper : IFfmpegWrapper
     public async Task<TimeSpan> GetDurationAsync(string inputPath, CancellationToken ct = default)
     {
         var args = $"-i \"{inputPath}\" -show_entries format=duration -v quiet -of csv=\"p=0\"";
-        var output = await RunProcessAsync(_config.FfmpegPath.Replace("ffmpeg", "ffprobe"), args, ct).ConfigureAwait(false);
+
+        var ffmpegDir = Path.GetDirectoryName(_config.FfmpegPath) ?? "";
+        var ffprobePath = Path.Combine(ffmpegDir, "ffprobe.exe");
+        if (!File.Exists(ffprobePath))
+        {
+            ffprobePath = Path.Combine(ffmpegDir, "ffprobe");
+        }
+
+        var output = await RunProcessAsync(ffprobePath, args, ct).ConfigureAwait(false);
 
         if (double.TryParse(output.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds))
         {
@@ -144,7 +152,8 @@ public class FfmpegWrapper : IFfmpegWrapper
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
-            CreateNoWindow = true
+            CreateNoWindow = true,
+            WorkingDirectory = Path.GetDirectoryName(fileName) ?? Environment.CurrentDirectory
         };
 
         using var process = new Process { StartInfo = psi };
