@@ -123,7 +123,9 @@
                     throw new Error(msg);
                 });
             }
-            return resp.json();
+            var len = resp.headers.get('content-length');
+            if (len === '0' || resp.status === 204) return null;
+            return resp.text().then(function (text) { return text ? JSON.parse(text) : null; });
         });
     }
 
