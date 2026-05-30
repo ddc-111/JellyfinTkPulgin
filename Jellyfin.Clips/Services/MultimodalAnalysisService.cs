@@ -26,7 +26,7 @@ public class MultimodalAnalysisService : IMultimodalAnalysisService
 {
     private readonly IFfmpegWrapper _ffmpeg;
     private readonly ILogger<MultimodalAnalysisService> _logger;
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     private static readonly HashSet<string> RiskKeywords = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -50,7 +50,7 @@ public class MultimodalAnalysisService : IMultimodalAnalysisService
     {
         _ffmpeg = ffmpeg;
         _logger = logger;
-        _httpClient = httpClientFactory.CreateClient();
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<MultimodalAnalysisResult?> AnalyzeClipAsync(
@@ -188,12 +188,15 @@ public class MultimodalAnalysisService : IMultimodalAnalysisService
         };
 
         var json = JsonSerializer.Serialize(requestBody);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiKey);
-        _httpClient.Timeout = TimeSpan.FromSeconds(config.RequestTimeoutSeconds);
+        using var httpClient = _httpClientFactory.CreateClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(config.RequestTimeoutSeconds);
 
-        var response = await _httpClient.PostAsync($"{config.BaseUrl}/chat/completions", content, ct);
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{config.BaseUrl}/chat/completions");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiKey);
+        request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var response = await httpClient.SendAsync(request, ct);
         var responseBody = await response.Content.ReadAsStringAsync(ct);
 
         if (!response.IsSuccessStatusCode)

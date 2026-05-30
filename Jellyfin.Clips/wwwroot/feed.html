@@ -83,12 +83,19 @@
     var modal = document.getElementById('video-modal');
     var modalVideo = document.getElementById('modal-video');
 
-    function getHeaders() {
-        var token = (typeof ApiClient !== 'undefined' && ApiClient.accessToken) ? ApiClient.accessToken() : '';
-        return {
-            'Content-Type': 'application/json',
-            'Authorization': 'MediaBrowser Token="' + token + '"'
-        };
+    function apiRequest(url, options) {
+        var client = (typeof ApiClient !== 'undefined') ? ApiClient : null;
+        if (!client) {
+            return Promise.reject(new Error('ApiClient 不可用'));
+        }
+        var opts = options || {};
+        return client.ajax({
+            type: opts.method || 'GET',
+            url: client.getUrl(url),
+            data: opts.body || null,
+            contentType: opts.body ? 'application/json' : undefined,
+            dataType: 'json'
+        });
     }
 
     function loadFeed(append) {
@@ -96,16 +103,15 @@
         isLoading = true;
         loading.style.display = 'flex';
 
-        var headers = getHeaders();
-        var params = new URLSearchParams({ count: PAGE_SIZE });
-        if (append && nextCursor) params.set('cursor', nextCursor);
-        if (currentGenre) params.set('genre', currentGenre);
+        var params = { count: PAGE_SIZE };
+        if (append && nextCursor) params.cursor = nextCursor;
+        if (currentGenre) params.genre = currentGenre;
 
-        fetch(API_BASE + '/Feed?' + params, { headers: headers })
-            .then(function (resp) {
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                return resp.json();
-            })
+        var qs = Object.keys(params).map(function (k) {
+            return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+        }).join('&');
+
+        apiRequest(API_BASE + '/Feed?' + qs)
             .then(function (data) {
                 clips = append ? clips.concat(data.clips) : data.clips;
                 nextCursor = data.nextCursor;
@@ -114,7 +120,7 @@
             })
             .catch(function (err) {
                 console.error('Failed to load feed:', err);
-                loading.innerHTML = '<p style="color:#ff6b6b;">加载失败: ' + err.message + '</p>';
+                loading.innerHTML = '<p style="color:#ff6b6b;">加载失败: ' + (err.message || err) + '</p>';
             })
             .finally(function () {
                 isLoading = false;
@@ -207,8 +213,7 @@
         };
 
         document.getElementById('btn-like').onclick = function () {
-            fetch(API_BASE + '/Like/' + clip.id, { method: 'POST', headers: getHeaders() })
-                .then(function (r) { return r.json(); })
+            apiRequest(API_BASE + '/Like/' + clip.id, { method: 'POST' })
                 .then(function (data) {
                     if (data.liked) { likeBtn.classList.add('liked'); clip.hasLiked = true; clip.likeCount++; }
                     else { likeBtn.classList.remove('liked'); clip.hasLiked = false; clip.likeCount--; }
@@ -231,8 +236,7 @@
 
     function handleSideAction(action, clipId) {
         if (action === 'like') {
-            fetch(API_BASE + '/Like/' + clipId, { method: 'POST', headers: getHeaders() })
-                .then(function (r) { return r.json(); })
+            apiRequest(API_BASE + '/Like/' + clipId, { method: 'POST' })
                 .then(function (data) {
                     var btn = document.querySelector('[data-action="like"][data-clip-id="' + clipId + '"]');
                     if (data.liked) { btn.classList.add('liked'); } else { btn.classList.remove('liked'); }
@@ -244,9 +248,8 @@
     }
 
     function reportInteraction(clipId, type, dwellTimeMs, completionRate) {
-        fetch(API_BASE + '/Interaction', {
+        apiRequest(API_BASE + '/Interaction', {
             method: 'POST',
-            headers: getHeaders(),
             body: JSON.stringify({ clipId: clipId, type: mapType(type), dwellTimeMs: dwellTimeMs || 0, completionRate: completionRate || 0 })
         }).catch(function (e) { console.error('Failed to report:', e); });
     }
@@ -288,7 +291,7 @@
         genBtn.addEventListener('click', function () {
             genBtn.textContent = '生成中...';
             genBtn.disabled = true;
-            fetch(API_BASE + '/Admin/Generate', { method: 'POST', headers: getHeaders(), body: JSON.stringify({ forceRegenerate: false }) })
+            apiRequest(API_BASE + '/Admin/Generate', { method: 'POST', body: JSON.stringify({ forceRegenerate: false }) })
                 .then(function () { genBtn.textContent = '已触发生成'; setTimeout(function () { loadFeed(false); }, 3000); })
                 .catch(function () { genBtn.textContent = '生成失败，请重试'; genBtn.disabled = false; });
         });
