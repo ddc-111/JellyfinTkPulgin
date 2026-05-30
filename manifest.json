@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/ddc-111/JellyfinTkPulgin/main/assets/plugin-icon.png",
     "versions": [
       {
+        "version": "1.2.6.0",
+        "changelog": "Release 1.2.6",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/ddc-111/JellyfinTkPulgin/releases/download/v1.2.6/Jellyfin.Clips_1.2.6.zip",
+        "checksum": "3c9998079155bf7ef77456cca7064690",
+        "timestamp": "2026-05-30T12:45:54Z"
+      },
+      {
         "version": "1.2.5.0",
         "changelog": "Release 1.2.5",
         "targetAbi": "10.11.0.0",
