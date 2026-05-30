@@ -13,7 +13,7 @@
         "changelog": "Release 1.1.0",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/ddc-111/JellyfinTkPulgin/releases/download/v1.1.0/Jellyfin.Clips_1.1.0.zip",
-        "checksum": "42c9fcaa40121ff40122ea45e4352e56ef4fc2298283cf0bdb94f5e0f466f41c",
+        "checksum": "393C925F1D818BFFFBFB842553854149",
         "timestamp": "2026-05-29T10:06:44Z"
       },
       {
@@ -21,7 +21,7 @@
         "changelog": "Release 1.0.0",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/ddc-111/JellyfinTkPulgin/releases/download/v1.0.0/Jellyfin.Clips_1.0.0.zip",
-        "checksum": "2e8cec432f31d0aaa2fcac0d1efd0954b40cf1a2ece34d36cd9edd81d727bf5d",
+        "checksum": "5DDA2F82087007769C29E81E3842C3DB",
         "timestamp": "2026-05-29T09:52:52Z"
       }
     ]
