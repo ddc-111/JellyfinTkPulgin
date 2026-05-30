@@ -15,16 +15,17 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         IServiceCollection serviceCollection,
         IServerApplicationHost applicationHost)
     {
+        var dbPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "jellyfin", "plugins", "clips", "clips.db");
+        var dir = Path.GetDirectoryName(dbPath);
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
+
         serviceCollection.AddDbContextFactory<ClipsDbContext>(options =>
         {
-            var dbPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "jellyfin", "plugins", "clips", "clips.db");
-            var dir = Path.GetDirectoryName(dbPath);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-            {
-                Directory.CreateDirectory(dir);
-            }
             options.UseSqlite($"Data Source={dbPath}");
         });
 
@@ -41,15 +42,5 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
 
         serviceCollection.AddHttpClient();
         serviceCollection.AddHostedService<IdleClipGenerator>();
-    }
-}
-
-public static class DatabaseInitializer
-{
-    public static async Task InitializeDatabaseAsync(IServiceProvider serviceProvider)
-    {
-        var factory = serviceProvider.GetRequiredService<IDbContextFactory<ClipsDbContext>>();
-        using var context = await factory.CreateDbContextAsync();
-        await context.Database.EnsureCreatedAsync();
     }
 }

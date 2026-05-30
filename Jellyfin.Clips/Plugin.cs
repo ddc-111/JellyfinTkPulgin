@@ -3,10 +3,7 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Jellyfin.Clips.Configuration;
-using Jellyfin.Clips.Data;
 
 namespace Jellyfin.Clips;
 
@@ -16,7 +13,6 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         : base(applicationPaths, xmlSerializer)
     {
         Instance = this;
-        InitializeDatabase().GetAwaiter().GetResult();
     }
 
     public override string Name => "Clips";
@@ -46,24 +42,5 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 EnableInMainMenu = true
             }
         ];
-    }
-
-    private static async Task InitializeDatabase()
-    {
-        var dbPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "jellyfin", "plugins", "clips", "clips.db");
-        var dir = Path.GetDirectoryName(dbPath);
-        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-        {
-            Directory.CreateDirectory(dir);
-        }
-
-        var options = new DbContextOptionsBuilder<ClipsDbContext>()
-            .UseSqlite($"Data Source={dbPath}")
-            .Options;
-
-        using var context = new ClipsDbContext(options);
-        await context.Database.EnsureCreatedAsync();
     }
 }
